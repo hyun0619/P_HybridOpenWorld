@@ -5,7 +5,28 @@
 #include "ProjectHGameInstance.generated.h"
 
 /**
- * 에셋 비동기 로딩 및 보존할 데이터를 관리하는 클래스
+ * 게임 종료 전까지 유지되어야 하는 핵심 데이터들
+ */
+USTRUCT(BlueprintType)
+struct FPlayerPersistenceData
+{
+	GENERATED_BODY()
+	
+	// 플레이어 월드맵 위치, 방향 저장
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FVector LastWorldLocation = FVector::ZeroVector;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FRotator LastWorldRotation = FRotator::ZeroRotator;
+	
+	// 마지막 플레이 월드 시간 저장 (초기값은 -1로 설정해 데이터 없음을 표기)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float SavedTime = -1.0f;
+	
+	// 추후 현재 HP나 소지 골드 등 추가
+};
+
+/**
+ * 프로젝트 전체의 전역 데이터와 서브시스템을 관리하는 클래스
  */
 UCLASS()
 class HYBRIDOPENWORLD_API UProjectHGameInstance : public UGameInstance
@@ -13,10 +34,7 @@ class HYBRIDOPENWORLD_API UProjectHGameInstance : public UGameInstance
 	GENERATED_BODY()
 	
 public:
-    // 생성자
-    //UProjectHGameInstance();
-
-    // 월드맵 레벨에서 플레이어가 마지막으로 있던 좌표 저장
-    // 플레이어가 월드맵 복귀할 때 사용할 회전값(바라보는 방향)
-    // 현재 플레이 중인 레벨의 이름 저장하여 상태 체크
+	// 구조체로 데이터 관리 -> 유지보수 Good
+	UPROPERTY(BlueprintReadWrite, Category="Persistence")
+	FPlayerPersistenceData PlayerData;
 };
