@@ -19,15 +19,15 @@ class HYBRIDOPENWORLD_API ULevelDataAsset : public UPrimaryDataAsset
 	
 public:
 	UPROPERTY(EditAnywhere, Category="Level")
-	ELevelType LevelType;
+	ELevelType LevelType; // 레벨 규칙 및 성격
 	
 	// 직접적인 UWorld* 참조는 데이터 에셋 로드 시 맵 전체를 메모리에 끌어올려 렉 유발
 	UPROPERTY(EditAnywhere, Category="Level")
-	TSoftObjectPtr<UWorld> LevelReference;
+	TSoftObjectPtr<UWorld> LevelReference; // 레벨 데이터 파일을 가리키는 주소
 	
 	UPROPERTY(EditAnywhere, Category="Level")
-	FString LevelName;
+	FString LevelName; // 레벨 이름
 	
 	UPROPERTY(EditAnywhere, Category="Spawn")
-	FVector DefaultSpawnLocation;
+	FVector DefaultSpawnLocation; // 레벨 진입 시 스폰 지점
 };
