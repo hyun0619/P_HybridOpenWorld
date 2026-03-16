@@ -2,8 +2,12 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Blueprint/AIBlueprintHelperLibrary.h"
-#include "ProjectHCameraActor.h" 
+#include "Camera/ProjectHCameraActor.h"
 #include "Kismet/GameplayStatics.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
+#include "Data/LevelDataAsset.h"
+#include "Data/CameraPresetDataAsset.h"
 
 
 AProjectHPlayerController::AProjectHPlayerController()
@@ -12,24 +16,35 @@ AProjectHPlayerController::AProjectHPlayerController()
 	bShowMouseCursor = true;
 	bEnableClickEvents = true;
 	bEnableMouseOverEvents = true;
+	
+	// 카메라 추적 시 화면 떨림 방지를 위해 틱 조정
+	PrimaryActorTick.TickGroup = TG_PostPhysics;
 }
 
 void AProjectHPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	// 레벨에 배치된 전용 카메라 액터 자동 연결
-	TArray<AActor*> FoundCameras;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AProjectHCameraActor::StaticClass(), FoundCameras);
-	if (FoundCameras.Num() > 0)
+    
+	// 전수 조사 대신 첫 번째 액터만 바로 가져오기
+	MainCameraActor = Cast<AProjectHCameraActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AProjectHCameraActor::StaticClass()));
+    
+	if (MainCameraActor)
 	{
-		MainCameraActor = Cast<AProjectHCameraActor>(FoundCameras[0]);
-		SetViewTarget(MainCameraActor); // 찾은 카메라로 화면 연결
+		SetViewTarget(MainCameraActor);
+       
+		// 데이터 에셋 우선, 없으면 맵 이름으로 판정
+		bool bIsWorldMap = false;
+		if (CurrentLevelData)
+		{
+			bIsWorldMap = (CurrentLevelData->LevelType == ELevelType::WorldMap);
+		}
+		else
+		{
+			bIsWorldMap = GetWorld()->GetMapName().Contains(TEXT("World"), ESearchCase::IgnoreCase);
+		}
+        
+		SetInputModeByType(bIsWorldMap);
 	}
-	
-	// 초기 카메라 배정 로직 (나중에 Spawn이나 FindActor 등으로 구현 필요)
-	
-	SetInputModeByType(true); // 초기 입력 모드 설정
 }
 
 void AProjectHPlayerController::SetupInputComponent()
@@ -49,54 +64,88 @@ void AProjectHPlayerController::SetupInputComponent()
 
 void AProjectHPlayerController::SetInputModeByType(bool bIsWorldMap)
 {
-	if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
+	auto* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
+	if (!Subsystem) return;
+
+	Subsystem->ClearAllMappings(); 
+	if (IMC_Global) Subsystem->AddMappingContext(IMC_Global, 0); 
+    
+	if (bIsWorldMap)
 	{
-		Subsystem->ClearAllMappings(); // 기존 모든 매핑을 한번에 정리
+		if (IMC_WorldMap) Subsystem->AddMappingContext(IMC_WorldMap, 1);
+        
+		FInputModeGameAndUI InputMode;
+		InputMode.SetHideCursorDuringCapture(false);
+		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+		SetInputMode(InputMode);
+		bShowMouseCursor = true;
+	}
+	else
+	{
+		if (IMC_Detailed) Subsystem->AddMappingContext(IMC_Detailed, 1);
+        
+		FInputModeGameOnly InputMode;
+		SetInputMode(InputMode);
+		bShowMouseCursor = false;
+	}
+
+	// 데이터 에셋 기반 카메라 설정 업데이트
+	if (MainCameraActor && CurrentLevelData && CurrentLevelData->CameraPreset)
+	{
+		auto* P = CurrentLevelData->CameraPreset;
+		MainCameraActor->UpdateCameraSettings(P->TargetArmLength, P->FieldOfView, P->Rotation);
 		
-		if (IMC_Global) Subsystem->AddMappingContext(IMC_Global, 0); // 공통 기능은 최우선으로
-		
-		if (IMC_WorldMap)
-		{
-			// 월드맵 모드 - 마우스 이동 활성화
-			if (IMC_WorldMap) Subsystem->AddMappingContext(IMC_WorldMap, 1);
-			bShowMouseCursor = true;
-			// 카메라 설정 변경
-			if (MainCameraActor) MainCameraActor->SetCameraMode(true);
-		}
-		else
-		{
-			// 세부지역 모드 - WASD 이동 활성화
-			if (IMC_Detailed) Subsystem->AddMappingContext(IMC_Detailed, 1);
-			bShowMouseCursor = false;
-			if (MainCameraActor) MainCameraActor->SetCameraMode(false);
-		}
+		CurrentTrackingSpeed = P->TrackingInterpSpeed; // 데이터 에셋에 설정된 속도값을 컨트롤러 변수에 저장
 	}
 }
 
 void AProjectHPlayerController::HandleMove_KeyBoard(const FInputActionValue& Value)
 {
-	// Detailed 모드에서만 작동함
+	// Detailed 모드에서만 작동
 	FVector2D MoveVector = Value.Get<FVector2D>();
 	if (APawn* ControlledPawn = GetPawn())
 	{
-		// 카메라의 전방 방향을 기준으로 이동
-		ControlledPawn->AddMovementInput(FVector::ForwardVector, MoveVector.Y);
-		ControlledPawn->AddMovementInput(FVector::RightVector, MoveVector.X);
+		// 카메라가 보고 있는 방향을 기준으로 이동
+		if (MainCameraActor)
+		{
+			// 카메라 회전값 중 Yaw만 추출하여 방향 계산
+			const FRotator YawRotation(0, MainCameraActor->GetActorRotation().Yaw, 0);
+			const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+			const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+
+			ControlledPawn->AddMovementInput(ForwardDirection, MoveVector.Y);
+			ControlledPawn->AddMovementInput(RightDirection, MoveVector.X);
+		}
 	}
 }
 
 void AProjectHPlayerController::HandleMove_MouseClick()
 {
-	// WorldMap 모드에서만 작동함 (IMC에 의해 필터링됨)
+	// WorldMap 모드에서만 작동
 	FHitResult Hit;
 	if (GetHitResultUnderCursor(ECC_Visibility, true, Hit))
 	{
 		// 내비게이션 시스템을 이용해 클릭 지점으로 자동 이동
 		UAIBlueprintHelperLibrary::SimpleMoveToLocation(this, Hit.ImpactPoint);
+		// 클릭 지점에 Niagara 효과 생성
+		if (FXCursor)
+		{
+			UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, FXCursor, Hit.ImpactPoint);
+		}
 	}
 }
 
 void AProjectHPlayerController::PlayerTick(float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
+    
+	if (MainCameraActor && GetPawn())
+	{
+		// [최적화] 불필요한 GetActorLocation 호출을 줄이고 인터폴레이션 수행
+		const FVector TargetLoc = GetPawn()->GetActorLocation();
+		const FVector CurrentLoc = MainCameraActor->GetActorLocation();
+        
+		// 5.0f는 추후 프리셋 데이터로 빼면 더 좋습니다!
+		MainCameraActor->SetActorLocation(FMath::VInterpTo(CurrentLoc, TargetLoc, DeltaTime, CurrentTrackingSpeed));
+	}
 }

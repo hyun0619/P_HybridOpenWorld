@@ -6,9 +6,11 @@
 #include "ProjectHPlayerController.generated.h"
 
 
+class UNiagaraSystem;
 class AProjectHCameraActor;
 class UInputMappingContext;
 class UInputAction;
+class ULevelDataAsset;
 
 /**
  * 플레이어 입력 처리, 레벨별 카메라 결정
@@ -28,6 +30,9 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "LevelData")
+	ULevelDataAsset* CurrentLevelData; // 현재 레벨 데이터 에셋
+	
 	UPROPERTY(EditDefaultsOnly, Category="Input|Context")
 	UInputMappingContext* IMC_Global; // 항상 켜있는 기능 (인벤토리, 지도 등)
 	UPROPERTY(EditDefaultsOnly, Category="Input|Context")
@@ -41,6 +46,10 @@ protected:
 	UInputAction* IA_Move_MouseClick; // 마우스 클릭 이동 
 	/*추후 추가될 기능들 자리*/
 	
+	// 템플릿에서 가져온 클릭 효과
+	UPROPERTY(EditDefaultsOnly, Category="Input|Effect")
+	UNiagaraSystem* FXCursor;
+	
 private:
 	// 입력 핸들러 - 필요한 시점에만 호출
 	void HandleMove_KeyBoard(const FInputActionValue& Value);
@@ -49,4 +58,5 @@ private:
 	
 	UPROPERTY()
 	AProjectHCameraActor* MainCameraActor; // 현재 제어 중인 카메라 참조
+	float CurrentTrackingSpeed = 5.0f; // 현재 프리셋의 속도값 저장
 };
