@@ -6,6 +6,7 @@
 #include "Engine/DataAsset.h"
 #include "LevelDataAsset.generated.h"
 
+class UCameraPresetDataAsset;
 /**
  * 레벨 정보
  */
@@ -30,4 +31,7 @@ public:
 	
 	UPROPERTY(EditAnywhere, Category="Spawn")
 	FVector DefaultSpawnLocation; // 레벨 진입 시 스폰 지점
+	
+	UPROPERTY(EditAnywhere, Category = "Camera")
+	UCameraPresetDataAsset* CameraPreset; // 카메라 프리셋 연결
 };
