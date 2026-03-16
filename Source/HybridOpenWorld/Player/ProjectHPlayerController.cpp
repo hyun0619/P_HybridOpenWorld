@@ -7,8 +7,8 @@
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 #include "Data/LevelDataAsset.h"
+#include "Data/LevelMasterAsset.h" 
 #include "Data/CameraPresetDataAsset.h"
-
 
 AProjectHPlayerController::AProjectHPlayerController()
 {
@@ -25,25 +25,31 @@ void AProjectHPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
     
-	// 전수 조사 대신 첫 번째 액터만 바로 가져오기
+	// 카메라 먼저 찾기
 	MainCameraActor = Cast<AProjectHCameraActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AProjectHCameraActor::StaticClass()));
-    
-	if (MainCameraActor)
+
+	if (MasterLevelSettings)
+	{
+		// 현재 맵의 이름을 가져옴
+		FString CurrentMapName = GetWorld()->GetMapName();
+		CurrentMapName.RemoveFromStart(GetWorld()->StreamingLevelsPrefix);
+
+		// 리스트를 돌며 현재 맵 이름과 일치하는 데이터를 스스로 찾아옴
+		for (ULevelDataAsset* Data : MasterLevelSettings->AllLevelDatas)
+		{
+			if (Data && Data->LevelReference.GetAssetName() == CurrentMapName)
+			{
+				CurrentLevelData = Data;
+				break;
+			}
+		}
+	}
+
+	// 데이터가 성공적으로 매핑되었다면 시스템 가동
+	if (CurrentLevelData && MainCameraActor)
 	{
 		SetViewTarget(MainCameraActor);
-       
-		// 데이터 에셋 우선, 없으면 맵 이름으로 판정
-		bool bIsWorldMap = false;
-		if (CurrentLevelData)
-		{
-			bIsWorldMap = (CurrentLevelData->LevelType == ELevelType::WorldMap);
-		}
-		else
-		{
-			bIsWorldMap = GetWorld()->GetMapName().Contains(TEXT("World"), ESearchCase::IgnoreCase);
-		}
-        
-		SetInputModeByType(bIsWorldMap);
+		SetInputModeByType(CurrentLevelData->LevelType == ELevelType::WorldMap);
 	}
 }
 
@@ -113,8 +119,9 @@ void AProjectHPlayerController::HandleMove_KeyBoard(const FInputActionValue& Val
 			const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
 			const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 
-			ControlledPawn->AddMovementInput(ForwardDirection, MoveVector.Y);
-			ControlledPawn->AddMovementInput(RightDirection, MoveVector.X);
+			// X를 전진에 Y를 좌우에 매핑
+			ControlledPawn->AddMovementInput(ForwardDirection, MoveVector.X);
+			ControlledPawn->AddMovementInput(RightDirection, MoveVector.Y);
 		}
 	}
 }

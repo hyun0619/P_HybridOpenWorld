@@ -11,7 +11,7 @@ class AProjectHCameraActor;
 class UInputMappingContext;
 class UInputAction;
 class ULevelDataAsset;
-
+class ULevelMasterAsset;
 /**
  * 플레이어 입력 처리, 레벨별 카메라 결정
  */
@@ -30,6 +30,8 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
 	
+	UPROPERTY(EditDefaultsOnly, Category = "LevelData")
+	ULevelMasterAsset* MasterLevelSettings; // 모든 레벨 데이터가 담긴 마스터 에셋 참조
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "LevelData")
 	ULevelDataAsset* CurrentLevelData; // 현재 레벨 데이터 에셋
 	
