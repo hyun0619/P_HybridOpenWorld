@@ -12,5 +12,9 @@ public class HybridOpenWorld : ModuleRules
         {
 	        "Core", "CoreUObject", "Engine", "InputCore", "NavigationSystem", "AIModule", "Niagara", "EnhancedInput"
         });
+        
+        PublicIncludePaths.AddRange(new string[] {"HybridOpenWorld"});
     }
+	
+	
 }
