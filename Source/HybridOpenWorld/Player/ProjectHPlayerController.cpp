@@ -146,13 +146,14 @@ void AProjectHPlayerController::PlayerTick(float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
     
-	if (MainCameraActor && GetPawn())
+	// 프리셋이 추적 상태일 때만 위치를 업데이트
+	if (MainCameraActor && GetPawn() && CurrentLevelData && CurrentLevelData->CameraPreset)
 	{
-		// [최적화] 불필요한 GetActorLocation 호출을 줄이고 인터폴레이션 수행
-		const FVector TargetLoc = GetPawn()->GetActorLocation();
-		const FVector CurrentLoc = MainCameraActor->GetActorLocation();
-        
-		// 5.0f는 추후 프리셋 데이터로 빼면 더 좋습니다!
-		MainCameraActor->SetActorLocation(FMath::VInterpTo(CurrentLoc, TargetLoc, DeltaTime, CurrentTrackingSpeed));
+		if (CurrentLevelData->CameraPreset->bFollowPawn)
+		{
+			const FVector TargetLoc = GetPawn()->GetActorLocation();
+			const FVector CurrentLoc = MainCameraActor->GetActorLocation();
+			MainCameraActor->SetActorLocation(FMath::VInterpTo(CurrentLoc, TargetLoc, DeltaTime, CurrentTrackingSpeed));
+		}
 	}
 }

@@ -26,4 +26,7 @@ public:
 	
 	UPROPERTY(EditAnywhere, Category = "Camera Settings")
 	float TrackingInterpSpeed = 5.0f; // 카메라가 캐릭터를 따라가는 속도
+	
+	UPROPERTY(EditAnywhere, Category = "Camera|Movement")
+	bool bFollowPawn = true; // 체크해제 - 고정 카메라
 };
