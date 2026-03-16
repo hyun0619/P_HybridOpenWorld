@@ -44,6 +44,35 @@ void AProjectHCameraActor::UpdateCameraSettings(float TargetArmLength, float FOV
 	}
 }
 
+void AProjectHCameraActor::UpdatePostProcessSettings(float InFocalDist, float InFStop, float InSensorWidth, float InNearBlur, float InFarBlur, float InFarTransition)
+{
+	if (!MainCamera) return;
+
+	FPostProcessSettings& PP_Settings = MainCamera->PostProcessSettings;
+
+	// 조리개 값
+	PP_Settings.bOverride_DepthOfFieldFstop = true;
+	PP_Settings.DepthOfFieldFstop = InFStop; 
+
+	// 센서 폭
+	PP_Settings.bOverride_DepthOfFieldSensorWidth = true;
+	PP_Settings.DepthOfFieldSensorWidth = InSensorWidth; 
+
+	// 초점 거리
+	PP_Settings.bOverride_DepthOfFieldFocalDistance = true;
+	PP_Settings.DepthOfFieldFocalDistance = InFocalDist;
+
+	// 전이 영역 미세 조정
+	PP_Settings.bOverride_DepthOfFieldNearBlurSize = true;
+	PP_Settings.DepthOfFieldNearBlurSize = InNearBlur;
+	PP_Settings.bOverride_DepthOfFieldFarBlurSize = true;
+	PP_Settings.DepthOfFieldFarBlurSize = InFarBlur;
+	
+	// 초점 구역에서 먼 블러 구역으로 전환되는 구간의 길이
+	PP_Settings.bOverride_DepthOfFieldFarTransitionRegion = true;
+	PP_Settings.DepthOfFieldFarTransitionRegion = InFarTransition;
+}
+
 FVector AProjectHCameraActor::GetCameraTargetLocation() const
 {
 	// 카메라가 바라보는 방향으로 월드맵 로드

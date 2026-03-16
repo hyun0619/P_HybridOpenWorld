@@ -21,7 +21,7 @@ public:
 	AProjectHCameraActor();
 	
 	void UpdateCameraSettings(float TargetArmLength, float FOV, FRotator Rotation); // 컨트롤러에서 넘겨준 수치로 카메라를 즉시 변경
-	
+	void UpdatePostProcessSettings(float InFocalDist, float InFStop, float InSensorWidth, float InNearBlur, float InFarBlur, float InFarTransition); // 컨트롤러에서 넘겨준 수치로 포스트 프로세스 업데이트
 	FVector GetCameraTargetLocation() const; // 스트리밍 소스가 바라볼 지점 계산
 	
 protected:
