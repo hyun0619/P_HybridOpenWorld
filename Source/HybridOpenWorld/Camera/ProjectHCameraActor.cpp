@@ -6,7 +6,7 @@
 
 AProjectHCameraActor::AProjectHCameraActor()
 {
-	PrimaryActorTick.bCanEverTick = false; // 컨트롤러가 대신 계산해주기에 카메라에선 Tick 필요 x
+	PrimaryActorTick.bCanEverTick = false; // 컨트롤러가 위치를 업데이트하므로 카메라에선 Tick 필요 x
 	
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
 	
@@ -19,15 +19,13 @@ AProjectHCameraActor::AProjectHCameraActor()
 	
 	// 스트리밍 소스 컴포넌트 생성
 	StreamingSourceComponent = CreateDefaultSubobject<UWorldPartitionStreamingSourceComponent>(TEXT("StreamingSourceComponent"));
-    
-	// ========================================================
-	// UE 5.5 주의사항:
-	// TargetState와 Shapes는 엔진 내부에서 Private으로 잠겼습니다.
-	// 코드로 강제 수정하면 빌드 에러가 발생합니다.
-	// 
-	// ※ 컴포넌트가 생성되는 순간 기본적으로 'Activated' 상태로 자동 적용됩니다.
-	// ※ 50m 반경 설정은 에디터로 돌아가서 디테일 패널에서 설정해야 합니다.
-	// ========================================================
+	
+	// 카메라 Lag 기능 활성화
+	SpringArm->bEnableCameraLag = bUseCameraLag;
+	SpringArm->CameraLagSpeed = CameraLagSpeed;
+	SpringArm->bEnableCameraRotationLag = true;
+	SpringArm->CameraRotationLagSpeed = CameraRotationLagSpeed;
+	SpringArm->CameraLagMaxDistance = 1000.0f; // 카메라가 너무 멀리 뒤처지는 것을 방지
 }
 
 void AProjectHCameraActor::BeginPlay()
@@ -36,31 +34,32 @@ void AProjectHCameraActor::BeginPlay()
 	
 }
 
+void AProjectHCameraActor::UpdateCameraSettings(float TargetArmLength, float FOV, FRotator Rotation)
+{
+	if (SpringArm && MainCamera)
+	{
+		SpringArm->TargetArmLength = TargetArmLength;
+		SpringArm->SetRelativeRotation(Rotation);
+		MainCamera->SetFieldOfView(FOV);
+	}
+}
+
 FVector AProjectHCameraActor::GetCameraTargetLocation() const
 {
 	// 카메라가 바라보는 방향으로 월드맵 로드
 	FVector CameraLoc = MainCamera->GetComponentLocation();
 	FVector ForwardDir = MainCamera->GetForwardVector();
 	
-	// 카메라가 하늘이나 정면을 볼 때 분모가 0이 되어 크래시 나는 것을 방지
-	float SafeZ = FMath::IsNearlyZero(ForwardDir.Z) ? -0.0001f : ForwardDir.Z;
-	// 단순화한 레이캐스트 계산 : (지면 높이 - 카메라 높이) / 방향의 Z값
-	float DistanceToGround = -CameraLoc.Z / SafeZ;
-	// 너무 멀리 있는 좌표가 나오지 않도록 Clamp 처리
-	return CameraLoc + (ForwardDir * FMath::Clamp(DistanceToGround, 0.f, 10000.f));
+	// 언리얼 내장 함수를 사용하여 카메라가 지면(Z=0 평면)을 바라보는 교차점 계산
+	// 월드맵 모드에서 카메라 시야 중심을 정확히 스트리밍하기 위함
+	FVector IntersectionPoint;
+	bool bIntersect = FMath::SegmentPlaneIntersection(
+		CameraLoc, 
+		CameraLoc + (ForwardDir * 10000.f), 
+		FPlane(FVector::UpVector, 0.f), 
+		IntersectionPoint
+	);
+
+	return bIntersect ? IntersectionPoint : (CameraLoc + ForwardDir * 2000.f);
 }
 
-void AProjectHCameraActor::SetCameraMode(bool bIsWorldMap)
-{
-	// 모드 전환 시 한 번에 값들을 변경
-	if (bIsWorldMap)
-	{
-		MainCamera->SetFieldOfView(WorldMapFOV);
-		SpringArm->TargetArmLength = WorldMapArmLength;
-	}
-	else
-	{
-		MainCamera->SetFieldOfView(DetailedFOV);
-		SpringArm->TargetArmLength = DetailedArmLength;
-	}
-}
