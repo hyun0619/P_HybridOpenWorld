@@ -6,8 +6,8 @@
 #include "Kismet/GameplayStatics.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
-#include "Data/LevelDataAsset.h"
-#include "Data/LevelMasterAsset.h" 
+#include "Data/LevelSettingsData.h"
+#include "Data/GameMasterAsset.h" 
 #include "Data/CameraPresetDataAsset.h"
 #include "Game/ProjectHGameInstance.h"
 
@@ -25,53 +25,74 @@ AProjectHPlayerController::AProjectHPlayerController()
 
 void AProjectHPlayerController::BeginPlay()
 {
-	Super::BeginPlay();
-	
-	// 필요한 객체 참조
+    Super::BeginPlay();
+    
     UProjectHGameInstance* GI = Cast<UProjectHGameInstance>(GetGameInstance());
     MainCameraActor = Cast<AProjectHCameraActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AProjectHCameraActor::StaticClass()));
+    
+    bHasValidLevelData = false;
 	
-    if (MasterLevelSettings)  // 레벨 데이터 매핑 - 마스터 에셋 리스트에서 현재 맵 이름으로 찾기
+	// 레벨 데이터
+    if (MasterLevelSettings && MasterLevelSettings->LevelTable)
     {
-       FString CurrentMapName = GetWorld()->GetMapName();
-       CurrentMapName.RemoveFromStart(GetWorld()->StreamingLevelsPrefix);
-    	
-       for (ULevelDataAsset* Data : MasterLevelSettings->AllLevelDatas)
-       {
-          if (Data && Data->LevelReference.GetAssetName() == CurrentMapName)
-          {
-             CurrentLevelData = Data;
-             break;
-          }
-       }
+        FString CurrentMapName = GetWorld()->GetMapName();
+        CurrentMapName.RemoveFromStart(GetWorld()->StreamingLevelsPrefix);
+        
+        static const FString ContextString(TEXT("LevelContext"));
+        TArray<FLevelSettingsRow*> AllRows;
+        MasterLevelSettings->LevelTable->GetAllRows<FLevelSettingsRow>(ContextString, AllRows);
+        
+        for (FLevelSettingsRow* Row : AllRows)
+        {
+            if (Row && Row->LevelReference.GetAssetName() == CurrentMapName)
+            {
+                CurrentLevelRow = *Row;
+                bHasValidLevelData = true;
+                break;
+            }
+        }
     }
-	
-    if (CurrentLevelData && MainCameraActor)  // 카메라 및 입력 모드 설정
+    
+	// 태그 스폰
+    if (bHasValidLevelData && MainCameraActor)
     {
-    	// 타입에 따른 조작 모드 및 카메라 프리셋 설정
-       SetViewTarget(MainCameraActor);
-       SetInputModeByType(CurrentLevelData->LevelType == ELevelType::WorldMap);
-    	
-    	if (APawn* P = GetPawn()) // 태그 기반 캐릭터 배치
-    	{
-    		FVector TargetLoc;
-    		// GameInstance에 저장된 목적지 태그가 유효한지 확인
-    		if (GI && GI->PendingSpawnTag.IsValid() && CurrentLevelData->SpawnLocations.Contains(GI->PendingSpawnTag))
-    		{
-    			TargetLoc = CurrentLevelData->SpawnLocations[GI->PendingSpawnTag];
-    		}
-    		else
-    		{
-    			// 태그가 없거나 못 찾으면 기본 위치로
-    			TargetLoc = CurrentLevelData->DefaultSpawnLocation;
-    		}
+        SetViewTarget(MainCameraActor);
+        SetInputModeByType(CurrentLevelRow.LevelType == ELevelType::WorldMap);
+        
+        if (APawn* P = GetPawn())
+        {
+            FVector TargetLoc;
+            if (GI && GI->PendingSpawnTag.IsValid() && CurrentLevelRow.SpawnLocations.Contains(GI->PendingSpawnTag))
+            {
+                TargetLoc = CurrentLevelRow.SpawnLocations[GI->PendingSpawnTag];
+            }
+            else
+            {
+                TargetLoc = CurrentLevelRow.DefaultSpawnLocation;
+            }
 
-    		// 즉시 이동 및 물리 상태 초기화
-    		P->SetActorLocation(TargetLoc, false, nullptr, ETeleportType::TeleportPhysics);
-    		MainCameraActor->SetActorLocation(TargetLoc); // 카메라 울렁거림 방지
+            P->SetActorLocation(TargetLoc, false, nullptr, ETeleportType::TeleportPhysics);
+            MainCameraActor->SetActorLocation(TargetLoc);
           
-    		if (GI) GI->PendingSpawnTag = FGameplayTag::EmptyTag; // 사용 완료 후 초기화
-    	}
+            if (GI) GI->PendingSpawnTag = FGameplayTag::EmptyTag;
+        }
+
+        // 카메라 프리셋 적용
+        if (CurrentLevelRow.CameraPreset)
+        {
+            auto* P = CurrentLevelRow.CameraPreset;
+            MainCameraActor->UpdateCameraSettings(P->TargetArmLength, P->FieldOfView, P->Rotation);
+            CurrentTrackingSpeed = P->TrackingInterpSpeed;
+            bCachedFollowPawn = P->bFollowPawn;
+
+            if (P->bEnableTiltShift)
+            {
+                MainCameraActor->UpdatePostProcessSettings(
+                    P->ManualFocusDistance, P->ApertureFStop, P->SensorWidth,
+                    P->NearBlurRadius, P->FarBlurRadius, P->FarTransitionRegion
+                );
+            }
+        }
     }
 }
 
@@ -95,7 +116,7 @@ void AProjectHPlayerController::SetInputModeByType(bool bIsWorldMap)
 	auto* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
 	if (!Subsystem) return;
 
-	// 기존의 모든 키 매핑 초기화, Global를 우선 순위 0으로 등록
+	// 기존의 모든 키 매핑 초기화 - Global 우선 순위 0
 	Subsystem->ClearAllMappings(); 
 	if (IMC_Global) Subsystem->AddMappingContext(IMC_Global, 0); 
 	
@@ -119,32 +140,6 @@ void AProjectHPlayerController::SetInputModeByType(bool bIsWorldMap)
 		FInputModeGameOnly InputMode;
 		SetInputMode(InputMode);
 		bShowMouseCursor = false;
-	}
-	
-	// 데이터 에셋 기반 카메라 설정 업데이트 로직
-	if (MainCameraActor && CurrentLevelData && CurrentLevelData->CameraPreset)
-	{
-		auto* P = CurrentLevelData->CameraPreset;
-        
-		// 기존 카메라 기본 설정 업데이트 (스프링암 길이, 시야각, 각도)
-		MainCameraActor->UpdateCameraSettings(P->TargetArmLength, P->FieldOfView, P->Rotation);
-        
-		// 매 프레임 Tick 연산을 위해 프리셋 데이터를 컨트롤러 변수에 캐싱
-		CurrentTrackingSpeed = P->TrackingInterpSpeed;
-		bCachedFollowPawn = P->bFollowPawn; 
-		
-		// 틸트 쉬프트 활성화 시 포스트 프로세스 수치 주입
-		if (P->bEnableTiltShift)
-		{
-			MainCameraActor->UpdatePostProcessSettings(
-				P->ManualFocusDistance, // 초점 평면 거리
-				P->ApertureFStop,       // 조리개 (심도 깊이)
-				P->SensorWidth,         // 센서 크기
-				P->NearBlurRadius,      // 근경 블러 세기
-				P->FarBlurRadius,        // 원경 블러 세기
-				P->FarTransitionRegion  // 전이 영역
-			);
-		}
 	}
 }
 
