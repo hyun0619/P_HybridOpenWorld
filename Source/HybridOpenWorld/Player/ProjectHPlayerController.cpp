@@ -9,6 +9,8 @@
 #include "Data/LevelDataAsset.h"
 #include "Data/LevelMasterAsset.h" 
 #include "Data/CameraPresetDataAsset.h"
+#include "Game/ProjectHGameInstance.h"
+
 
 AProjectHPlayerController::AProjectHPlayerController()
 {
@@ -24,33 +26,53 @@ AProjectHPlayerController::AProjectHPlayerController()
 void AProjectHPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
-    
-	// 카메라 먼저 찾기
-	MainCameraActor = Cast<AProjectHCameraActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AProjectHCameraActor::StaticClass()));
+	
+	// 필요한 객체 참조
+    UProjectHGameInstance* GI = Cast<UProjectHGameInstance>(GetGameInstance());
+    MainCameraActor = Cast<AProjectHCameraActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AProjectHCameraActor::StaticClass()));
+	
+    if (MasterLevelSettings)  // 레벨 데이터 매핑 - 마스터 에셋 리스트에서 현재 맵 이름으로 찾기
+    {
+       FString CurrentMapName = GetWorld()->GetMapName();
+       CurrentMapName.RemoveFromStart(GetWorld()->StreamingLevelsPrefix);
+    	
+       for (ULevelDataAsset* Data : MasterLevelSettings->AllLevelDatas)
+       {
+          if (Data && Data->LevelReference.GetAssetName() == CurrentMapName)
+          {
+             CurrentLevelData = Data;
+             break;
+          }
+       }
+    }
+	
+    if (CurrentLevelData && MainCameraActor)  // 카메라 및 입력 모드 설정
+    {
+    	// 타입에 따른 조작 모드 및 카메라 프리셋 설정
+       SetViewTarget(MainCameraActor);
+       SetInputModeByType(CurrentLevelData->LevelType == ELevelType::WorldMap);
+    	
+    	if (APawn* P = GetPawn()) // 태그 기반 캐릭터 배치
+    	{
+    		FVector TargetLoc;
+    		// GameInstance에 저장된 목적지 태그가 유효한지 확인
+    		if (GI && GI->PendingSpawnTag.IsValid() && CurrentLevelData->SpawnLocations.Contains(GI->PendingSpawnTag))
+    		{
+    			TargetLoc = CurrentLevelData->SpawnLocations[GI->PendingSpawnTag];
+    		}
+    		else
+    		{
+    			// 태그가 없거나 못 찾으면 기본 위치로
+    			TargetLoc = CurrentLevelData->DefaultSpawnLocation;
+    		}
 
-	if (MasterLevelSettings)
-	{
-		// 현재 맵의 이름을 가져옴
-		FString CurrentMapName = GetWorld()->GetMapName();
-		CurrentMapName.RemoveFromStart(GetWorld()->StreamingLevelsPrefix);
-
-		// 리스트를 돌며 현재 맵 이름과 일치하는 데이터를 스스로 찾아옴
-		for (ULevelDataAsset* Data : MasterLevelSettings->AllLevelDatas)
-		{
-			if (Data && Data->LevelReference.GetAssetName() == CurrentMapName)
-			{
-				CurrentLevelData = Data;
-				break;
-			}
-		}
-	}
-
-	// 데이터가 성공적으로 매핑되었다면 시스템 가동
-	if (CurrentLevelData && MainCameraActor)
-	{
-		SetViewTarget(MainCameraActor);
-		SetInputModeByType(CurrentLevelData->LevelType == ELevelType::WorldMap);
-	}
+    		// 즉시 이동 및 물리 상태 초기화
+    		P->SetActorLocation(TargetLoc, false, nullptr, ETeleportType::TeleportPhysics);
+    		MainCameraActor->SetActorLocation(TargetLoc); // 카메라 울렁거림 방지
+          
+    		if (GI) GI->PendingSpawnTag = FGameplayTag::EmptyTag; // 사용 완료 후 초기화
+    	}
+    }
 }
 
 void AProjectHPlayerController::SetupInputComponent()
@@ -79,7 +101,7 @@ void AProjectHPlayerController::SetInputModeByType(bool bIsWorldMap)
 	
 	if (bIsWorldMap)
 	{
-		// 월드맵 - 마우스 이동용 IMC 등록 (우선순위 1)
+		// 월드맵 - 마우스 이동용 IMC 등록
 		if (IMC_WorldMap) Subsystem->AddMappingContext(IMC_WorldMap, 1);
         
 		// 마우스 커서가 자유롭게 움직이고 UI 상호작용이 가능한 모드로 설정
@@ -91,7 +113,7 @@ void AProjectHPlayerController::SetInputModeByType(bool bIsWorldMap)
 	}
 	else
 	{
-		// 세부지역 - WASD 이동용 IMC 등록 (우선순위 1)
+		// 세부지역 - WASD 이동용 IMC 등록
 		if (IMC_Detailed) Subsystem->AddMappingContext(IMC_Detailed, 1);
         
 		FInputModeGameOnly InputMode;

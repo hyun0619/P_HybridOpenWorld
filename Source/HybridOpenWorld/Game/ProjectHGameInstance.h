@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
+#include "GameplayTagContainer.h"
 #include "ProjectHGameInstance.generated.h"
 
 /**
@@ -18,7 +19,7 @@ struct FPlayerPersistenceData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FRotator LastWorldRotation = FRotator::ZeroRotator;
 	
-	// 마지막 플레이 월드 시간 저장 (초기값은 -1로 설정해 데이터 없음을 표기)
+	// 마지막 플레이 월드 시간 저장 - 초기값은 -1로 설정해 데이터 없음을 표기
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float SavedTime = -1.0f;
 	
@@ -34,7 +35,9 @@ class HYBRIDOPENWORLD_API UProjectHGameInstance : public UGameInstance
 	GENERATED_BODY()
 	
 public:
-	// 구조체로 데이터 관리 -> 유지보수 Good
 	UPROPERTY(BlueprintReadWrite, Category="Persistence")
-	FPlayerPersistenceData PlayerData;
+	FPlayerPersistenceData PlayerData; // 구조체로 데이터 관리
+	
+	UPROPERTY(BlueprintReadWrite, Category = "LevelMove")
+	FGameplayTag PendingSpawnTag; // 다음 레벨에 도착했을 때 찾아갈 위치 태그
 };
