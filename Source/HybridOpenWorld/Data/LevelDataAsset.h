@@ -1,9 +1,8 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "GameplayTagContainer.h"
 #include "LevelDataAsset.generated.h"
 
 class UCameraPresetDataAsset;
@@ -11,7 +10,7 @@ class UCameraPresetDataAsset;
  * 레벨 정보
  */
 UENUM(BlueprintType)
-enum class ELevelType : uint8 { WorldMap, Detailed, Event };
+enum class ELevelType : uint8 { WorldMap, Detailed, Event }; //월드맵, 세부레벨, 이벤트 연출용
 
 UCLASS(BlueprintType)
 class HYBRIDOPENWORLD_API ULevelDataAsset : public UPrimaryDataAsset
@@ -20,7 +19,7 @@ class HYBRIDOPENWORLD_API ULevelDataAsset : public UPrimaryDataAsset
 	
 public:
 	UPROPERTY(EditAnywhere, Category="Level")
-	ELevelType LevelType; // 레벨 규칙 및 성격
+	ELevelType LevelType; // 레벨 규칙 및 성격 - 조작 방식
 	
 	// 직접적인 UWorld* 참조는 데이터 에셋 로드 시 맵 전체를 메모리에 끌어올려 렉 유발
 	UPROPERTY(EditAnywhere, Category="Level")
@@ -30,7 +29,9 @@ public:
 	FString LevelName; // 레벨 이름
 	
 	UPROPERTY(EditAnywhere, Category="Spawn")
-	FVector DefaultSpawnLocation; // 레벨 진입 시 스폰 지점
+	FVector DefaultSpawnLocation; // 레벨 진입 시 스폰 지점 (백업용 기본 좌표)
+	UPROPERTY(EditAnywhere, Category = "Spawn")
+	TMap<FGameplayTag, FVector> SpawnLocations; // 입구 이름에 따른 스폰 좌표 리스트
 	
 	UPROPERTY(EditAnywhere, Category = "Camera")
 	UCameraPresetDataAsset* CameraPreset; // 카메라 프리셋 연결
