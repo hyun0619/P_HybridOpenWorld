@@ -15,29 +15,29 @@ class HYBRIDOPENWORLD_API UCameraPresetDataAsset : public UDataAsset
 	GENERATED_BODY()
 	
 public:
-	UPROPERTY(EditAnywhere, Category="Camera|Settings")
-	float TargetArmLength = 1000.f; // 타겟 거리
-	UPROPERTY(EditAnywhere, Category = "Camera|Settings")
-	float FieldOfView = 90.0f; // FOV
-	UPROPERTY(EditAnywhere, Category = "Camera|Settings")
-	FRotator Rotation = FRotator(-30.f, 0.f, 0.f); // 회전값
-	UPROPERTY(EditAnywhere, Category = "Camera|Settings")
-	float TrackingInterpSpeed = 5.0f; // 카메라가 캐릭터를 따라가는 속도
-	UPROPERTY(EditAnywhere, Category = "Camera|Movement")
-	bool bFollowPawn = true; // 체크해제 - 고정 카메라
+	UPROPERTY(EditAnywhere, Category="Camera|Settings", meta=(DisplayName="카메라 암 길이" ,ToolTip = "카메라와 캐릭터 사이의 거리"))
+	float TargetArmLength = 1000.f;
+	UPROPERTY(EditAnywhere, Category = "Camera|Settings", meta=(DisplayName="시야각 (FOV)", ToolTip = "값 클수록 더 넓은 영역 봄"))
+	float FieldOfView = 90.0f;
+	UPROPERTY(EditAnywhere, Category = "Camera|Settings", meta=(DisplayName="고정 회전값", ToolTip = "카메라가 타겟을 바라보는 기본 각도"))
+	FRotator Rotation = FRotator(-30.f, 0.f, 0.f);
+	UPROPERTY(EditAnywhere, Category = "Camera|Settings", meta=(DisplayName="카메라가 캐릭터를 따라가는 속도", ToolTip = "높을수록 즉각적으로 반응"))
+	float TrackingInterpSpeed = 5.0f;
+	UPROPERTY(EditAnywhere, Category = "Camera|Movement", meta=(DisplayName="캐릭터 추적 여부", ToolTip = "체크하면 캐릭터를 따라가고, 해제하면 고정된 위치에서 촬영"))
+	bool bFollowPawn = true;
 	
-	UPROPERTY(EditAnywhere, Category = "Camera|TiltShift")
-	bool bEnableTiltShift = false; // 틸트 쉬프트
-	UPROPERTY(EditAnywhere, Category = "Camera|TiltShift", meta=(EditCondition="bEnableTiltShift"))
-	float ApertureFStop = 0.8f; // 조리개 - 낮을수록 주변이 더 흐려짐
-	UPROPERTY(EditAnywhere, Category = "Camera|TiltShift", meta=(EditCondition="bEnableTiltShift"))
-	float SensorWidth = 144.0f; // 센서 폭 - 클수록 심도가 얕아짐
-	UPROPERTY(EditAnywhere, Category = "Camera|TiltShift", meta=(EditCondition="bEnableTiltShift"))
-	float ManualFocusDistance = 2000.f; // 초점이 맞는 거리
-	UPROPERTY(EditAnywhere, Category = "Camera|TiltShift", meta=(EditCondition="bEnableTiltShift"))
-	float NearBlurRadius = 15.f; // 카메라와 가까운 블러 세기
-	UPROPERTY(EditAnywhere, Category = "Camera|TiltShift", meta=(EditCondition="bEnableTiltShift"))
-	float FarBlurRadius = 15.f; // 카메라와 먼 블러 세기
-	UPROPERTY(EditAnywhere, Category = "Camera|TiltShift", meta=(EditCondition="bEnableTiltShift"))
-	float FarTransitionRegion = 1000.f; // 초점 구역에서 먼 블러 구역으로 전환되는 구간의 길이 - 클수록 부드럽고 완만하게 흐려짐
+	UPROPERTY(EditAnywhere, Category = "Camera|TiltShift", meta=(DisplayName="틸트 쉬프트 활성화"))
+	bool bEnableTiltShift = false;
+	UPROPERTY(EditAnywhere, Category = "Camera|TiltShift", meta=(EditCondition="bEnableTiltShift", DisplayName="조리개 (F-Stop)", ToolTip = "값 낮을수록 초점 구역 외의 배경 더 강하게 흐려짐"))
+	float ApertureFStop = 0.8f;
+	UPROPERTY(EditAnywhere, Category = "Camera|TiltShift", meta=(EditCondition="bEnableTiltShift", DisplayName="센서 폭 (mm)", ToolTip = "값 클수록 심도가 얕아져 미니어처 효과 강조"))
+	float SensorWidth = 144.0f;
+	UPROPERTY(EditAnywhere, Category = "Camera|TiltShift", meta=(EditCondition="bEnableTiltShift", DisplayName="수동 초점 거리", ToolTip = "카메라로부터 초점이 가장 선명하게 맺히는 지점까지의 거리"))
+	float ManualFocusDistance = 2000.f;
+	UPROPERTY(EditAnywhere, Category = "Camera|TiltShift", meta=(EditCondition="bEnableTiltShift", DisplayName="카메라와 가까운 블러 세기", ToolTip = "초점보다 앞에 있는 사물의 흐림 정도"))
+	float NearBlurRadius = 15.f;
+	UPROPERTY(EditAnywhere, Category = "Camera|TiltShift", meta=(EditCondition="bEnableTiltShift", DisplayName="카메라와 먼 블러 세기", ToolTip = "초점보다 뒤에 있는 배경의 흐림 정도"))
+	float FarBlurRadius = 15.f;
+	UPROPERTY(EditAnywhere, Category = "Camera|TiltShift", meta=(EditCondition="bEnableTiltShift", DisplayName="블러 경계 부드러움 세기", ToolTip = "클수록 부드럽고 완만하게 흐려짐"))
+	float FarTransitionRegion = 1000.f;
 };
