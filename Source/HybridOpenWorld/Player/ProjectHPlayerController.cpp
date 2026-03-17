@@ -73,13 +73,16 @@ void AProjectHPlayerController::SetInputModeByType(bool bIsWorldMap)
 	auto* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
 	if (!Subsystem) return;
 
+	// 기존의 모든 키 매핑 초기화, Global를 우선 순위 0으로 등록
 	Subsystem->ClearAllMappings(); 
 	if (IMC_Global) Subsystem->AddMappingContext(IMC_Global, 0); 
-    
+	
 	if (bIsWorldMap)
 	{
+		// 월드맵 - 마우스 이동용 IMC 등록 (우선순위 1)
 		if (IMC_WorldMap) Subsystem->AddMappingContext(IMC_WorldMap, 1);
         
+		// 마우스 커서가 자유롭게 움직이고 UI 상호작용이 가능한 모드로 설정
 		FInputModeGameAndUI InputMode;
 		InputMode.SetHideCursorDuringCapture(false);
 		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
@@ -88,20 +91,38 @@ void AProjectHPlayerController::SetInputModeByType(bool bIsWorldMap)
 	}
 	else
 	{
+		// 세부지역 - WASD 이동용 IMC 등록 (우선순위 1)
 		if (IMC_Detailed) Subsystem->AddMappingContext(IMC_Detailed, 1);
         
 		FInputModeGameOnly InputMode;
 		SetInputMode(InputMode);
 		bShowMouseCursor = false;
 	}
-
-	// 데이터 에셋 기반 카메라 설정 업데이트
+	
+	// 데이터 에셋 기반 카메라 설정 업데이트 로직
 	if (MainCameraActor && CurrentLevelData && CurrentLevelData->CameraPreset)
 	{
 		auto* P = CurrentLevelData->CameraPreset;
+        
+		// 기존 카메라 기본 설정 업데이트 (스프링암 길이, 시야각, 각도)
 		MainCameraActor->UpdateCameraSettings(P->TargetArmLength, P->FieldOfView, P->Rotation);
+        
+		// 매 프레임 Tick 연산을 위해 프리셋 데이터를 컨트롤러 변수에 캐싱
+		CurrentTrackingSpeed = P->TrackingInterpSpeed;
+		bCachedFollowPawn = P->bFollowPawn; 
 		
-		CurrentTrackingSpeed = P->TrackingInterpSpeed; // 데이터 에셋에 설정된 속도값을 컨트롤러 변수에 저장
+		// 틸트 쉬프트 활성화 시 포스트 프로세스 수치 주입
+		if (P->bEnableTiltShift)
+		{
+			MainCameraActor->UpdatePostProcessSettings(
+				P->ManualFocusDistance, // 초점 평면 거리
+				P->ApertureFStop,       // 조리개 (심도 깊이)
+				P->SensorWidth,         // 센서 크기
+				P->NearBlurRadius,      // 근경 블러 세기
+				P->FarBlurRadius,        // 원경 블러 세기
+				P->FarTransitionRegion  // 전이 영역
+			);
+		}
 	}
 }
 
@@ -145,14 +166,14 @@ void AProjectHPlayerController::HandleMove_MouseClick()
 void AProjectHPlayerController::PlayerTick(float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
-    
-	if (MainCameraActor && GetPawn())
+	
+	if (bCachedFollowPawn && MainCameraActor && GetPawn())
 	{
-		// [최적화] 불필요한 GetActorLocation 호출을 줄이고 인터폴레이션 수행
-		const FVector TargetLoc = GetPawn()->GetActorLocation();
-		const FVector CurrentLoc = MainCameraActor->GetActorLocation();
+		const FVector TargetLocation = GetPawn()->GetActorLocation();
+		const FVector CurrentLocation = MainCameraActor->GetActorLocation();
         
-		// 5.0f는 추후 프리셋 데이터로 빼면 더 좋습니다!
-		MainCameraActor->SetActorLocation(FMath::VInterpTo(CurrentLoc, TargetLoc, DeltaTime, CurrentTrackingSpeed));
+		// VInterpTo를 사용하여 카메라가 캐릭터를 부드럽게 추적
+		FVector SmoothLocation = FMath::VInterpTo(CurrentLocation, TargetLocation, DeltaTime, CurrentTrackingSpeed);
+		MainCameraActor->SetActorLocation(SmoothLocation);
 	}
 }

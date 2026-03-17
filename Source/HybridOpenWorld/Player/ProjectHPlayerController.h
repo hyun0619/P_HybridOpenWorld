@@ -61,4 +61,5 @@ private:
 	UPROPERTY()
 	AProjectHCameraActor* MainCameraActor; // 현재 제어 중인 카메라 참조
 	float CurrentTrackingSpeed = 5.0f; // 현재 프리셋의 속도값 저장
+	bool bCachedFollowPawn = true; 
 };
