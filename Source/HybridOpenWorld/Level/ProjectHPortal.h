@@ -22,11 +22,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category="Portal")
 	UBoxComponent* CollisionBox;
 	
-	// 에디터 디테일 창에서 설정할 목적지 정보
-	UPROPERTY(EditAnywhere, Category="Portal")
-	TSoftObjectPtr<UWorld> TargetLevel; // 이동할 레벨
-	UPROPERTY(EditAnywhere, Category="Portal")
-	FGameplayTag TargetSpawnTag; // 도착지 입구 태그
+	UPROPERTY(EditAnywhere, Category="Portal", meta=(DisplayName="목적지 레벨") ,meta=(ToolTip = "설정한 레벨로 스폰"))
+	TSoftObjectPtr<UWorld> TargetLevel;
+	UPROPERTY(EditAnywhere, Category="Portal", meta=(DisplayName="스폰 지점 태그") ,meta=(ToolTip = "설정한 태그의 좌표로 스폰"))
+	FGameplayTag TargetSpawnTag;
 
 	UFUNCTION()
 	void OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, 

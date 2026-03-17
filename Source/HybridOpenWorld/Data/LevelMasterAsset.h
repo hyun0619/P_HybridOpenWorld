@@ -16,7 +16,6 @@ class HYBRIDOPENWORLD_API ULevelMasterAsset : public UDataAsset
 	GENERATED_BODY()
 	
 public:
-	// 모든 레벨 데이터 에셋
-	UPROPERTY(EditAnywhere, Category = "Levels")
+	UPROPERTY(EditAnywhere, Category = "Levels", meta=(DisplayName="전체 레벨 목록", ToolTip = "모든 레벨 데이터 에셋"))
 	TArray<ULevelDataAsset*> AllLevelDatas;
 };
