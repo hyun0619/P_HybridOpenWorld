@@ -10,7 +10,7 @@
 #include "Data/GameMasterAsset.h" 
 #include "Data/CameraPresetDataAsset.h"
 #include "Game/ProjectHGameInstance.h"
-
+#include "Input/ProjectHInputComponent.h"
 
 AProjectHPlayerController::AProjectHPlayerController()
 {
@@ -21,6 +21,9 @@ AProjectHPlayerController::AProjectHPlayerController()
 	
 	// 카메라 추적 시 화면 떨림 방지를 위해 틱 조정
 	PrimaryActorTick.TickGroup = TG_PostPhysics;
+	
+	// 입력 전달 컴포넌트 생성 및 부착
+	InputManager = CreateDefaultSubobject<UProjectHInputComponent>(TEXT("InputManager"));
 }
 
 void AProjectHPlayerController::BeginPlay()
@@ -48,25 +51,6 @@ void AProjectHPlayerController::SetupInputComponent()
 		// 마우스 이동 (Started: 클릭한 순간)
 		EnhancedInputComponent->BindAction(IA_Move_MouseClick, ETriggerEvent::Started, this, &AProjectHPlayerController::HandleMove_MouseClick);
 		/*추후 추가될 기능들 자리*/
-	}
-}
-
-void AProjectHPlayerController::SetInputModeByType(bool bIsWorldMap)
-{
-	auto* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
-	if (!Subsystem) return;
-
-	// 기존의 모든 키 매핑 초기화 - Global 우선 순위 0
-	Subsystem->ClearAllMappings(); 
-	if (IMC_Global) Subsystem->AddMappingContext(IMC_Global, 0); 
-	
-	if (bIsWorldMap)
-	{
-		SetupWorldMapInput();
-	}
-	else
-	{
-		SetupDetailedInput();
 	}
 }
 
@@ -155,34 +139,26 @@ void AProjectHPlayerController::FetchLevelData()
 void AProjectHPlayerController::ApplyInitialLevelSetup()
 {
 	SetViewTarget(MainCameraActor); // 카메라 뷰 타겟 설정
-	SetInputModeByType(CurrentLevelRow.LevelType == ELevelType::WorldMap); // 입력 모드 설정
+	
+	switch (CurrentLevelRow.LevelType)
+	{
+	case ELevelType::WorldMap:
+		DefaultState = EInputState::WorldMap;
+		break;
+	case ELevelType::Detailed:
+		DefaultState = EInputState::Detailed;
+		break;
+	case ELevelType::Event:
+		DefaultState = EInputState::Cinematic;
+		break;
+	default:
+		DefaultState = EInputState::Detailed; // 안전 장치
+		break;
+	}
+	ChangeInputState(DefaultState); // 기본 상태로 조작을 셋팅
 	
 	HandleInitialSpawn(); // 캐릭터 스폰 배치
 	ApplyCameraPreset(); // 카메라 프리셋 적용
-}
-
-void AProjectHPlayerController::SetupWorldMapInput()
-{
-	if (IMC_WorldMap) {
-		ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer())->AddMappingContext(IMC_WorldMap, 1);
-	}
-        
-	FInputModeGameAndUI InputMode;
-	InputMode.SetHideCursorDuringCapture(false);
-	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-	SetInputMode(InputMode);
-	bShowMouseCursor = true;
-}
-
-void AProjectHPlayerController::SetupDetailedInput()
-{
-	if (IMC_Detailed) {
-		ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer())->AddMappingContext(IMC_Detailed, 1);
-	}
-        
-	FInputModeGameOnly InputMode;
-	SetInputMode(InputMode);
-	bShowMouseCursor = false;
 }
 
 void AProjectHPlayerController::HandleInitialSpawn()
@@ -232,4 +208,19 @@ void AProjectHPlayerController::ApplyCameraPreset()
 			);
 		}
 	}
+}
+
+void AProjectHPlayerController::ChangeInputState(EInputState NewState)
+{
+	CurrentState = NewState;
+	
+	if (InputManager)
+	{
+		InputManager->ApplyInputState(this, CurrentState);
+	}
+}
+
+void AProjectHPlayerController::RevertToDefaultState()
+{
+	ChangeInputState(DefaultState);
 }
