@@ -5,11 +5,12 @@
 #include "GameplayTagContainer.h"
 #include "LevelSettingsData.generated.h"
 
-/**
- * 레벨 성격 정의
- */
+
 class UCameraPresetDataAsset;
 
+/**
+ * 레벨 성격 정의 및 레벨별 셋팅
+ */
 UENUM(BlueprintType)
 enum class ELevelType : uint8 
 { 
@@ -25,7 +26,7 @@ struct FLevelSettingsRow : public FTableRowBase
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Level", meta=(DisplayName="레벨 타입", ToolTip = "규칙 및 조작 방식"))
-	ELevelType LevelType;
+	ELevelType LevelType = ELevelType::Detailed;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Level", meta=(DisplayName="참조 레벨", ToolTip = "레벨 파일 연결"))
 	TSoftObjectPtr<UWorld> LevelReference;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Level", meta=(DisplayName="레벨 이름"))
