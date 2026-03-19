@@ -39,58 +39,6 @@ void AProjectHPlayerController::BeginPlay()
 	}
 }
 
-void AProjectHPlayerController::SetupInputComponent()
-{
-	Super::SetupInputComponent();
-	
-	// Enhanced Input 컴포넌트로 캐스팅하여 바인딩
-	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent))
-	{
-		// WASD 이동 (Triggered: 계속 누르고 있을 때)
-		EnhancedInputComponent->BindAction(IA_Move_KeyBoard, ETriggerEvent::Triggered, this, &AProjectHPlayerController::HandleMove_KeyBoard);
-		// 마우스 이동 (Started: 클릭한 순간)
-		EnhancedInputComponent->BindAction(IA_Move_MouseClick, ETriggerEvent::Started, this, &AProjectHPlayerController::HandleMove_MouseClick);
-		/*추후 추가될 기능들 자리*/
-	}
-}
-
-void AProjectHPlayerController::HandleMove_KeyBoard(const FInputActionValue& Value)
-{
-	// Detailed 모드에서만 작동
-	FVector2D MoveVector = Value.Get<FVector2D>();
-	if (APawn* ControlledPawn = GetPawn())
-	{
-		// 카메라가 보고 있는 방향을 기준으로 이동
-		if (MainCameraActor)
-		{
-			// 카메라 회전값 중 Yaw만 추출하여 방향 계산
-			const FRotator YawRotation(0, MainCameraActor->GetActorRotation().Yaw, 0);
-			const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-			const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-
-			// X를 전진에 Y를 좌우에 매핑
-			ControlledPawn->AddMovementInput(ForwardDirection, MoveVector.X);
-			ControlledPawn->AddMovementInput(RightDirection, MoveVector.Y);
-		}
-	}
-}
-
-void AProjectHPlayerController::HandleMove_MouseClick()
-{
-	// WorldMap 모드에서만 작동
-	FHitResult Hit;
-	if (GetHitResultUnderCursor(ECC_Visibility, true, Hit))
-	{
-		// 내비게이션 시스템을 이용해 클릭 지점으로 자동 이동
-		UAIBlueprintHelperLibrary::SimpleMoveToLocation(this, Hit.ImpactPoint);
-		// 클릭 지점에 Niagara 효과 생성
-		if (FXCursor)
-		{
-			UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, FXCursor, Hit.ImpactPoint);
-		}
-	}
-}
-
 void AProjectHPlayerController::PlayerTick(float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
@@ -109,6 +57,11 @@ void AProjectHPlayerController::PlayerTick(float DeltaTime)
 void AProjectHPlayerController::InitEssentialReferences()
 {
 	MainCameraActor = Cast<AProjectHCameraActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AProjectHCameraActor::StaticClass()));
+}
+
+AProjectHCameraActor* AProjectHPlayerController::GetMainCameraActor() const
+{
+	return MainCameraActor;
 }
 
 void AProjectHPlayerController::FetchLevelData()
