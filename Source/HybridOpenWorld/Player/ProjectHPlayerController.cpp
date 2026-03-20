@@ -43,7 +43,7 @@ void AProjectHPlayerController::PlayerTick(float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
 	
-	if (bCachedFollowPawn && MainCameraActor && GetPawn())
+	if (bCachedFollowPawn && IsValid(MainCameraActor) && IsValid(GetPawn()))
 	{
 		const FVector TargetLocation = GetPawn()->GetActorLocation();
 		const FVector CurrentLocation = MainCameraActor->GetActorLocation();
@@ -66,7 +66,17 @@ AProjectHCameraActor* AProjectHPlayerController::GetMainCameraActor() const
 
 void AProjectHPlayerController::FetchLevelData()
 {
-	if (!MasterLevelSettings || !MasterLevelSettings->LevelTable) return;
+	if (!IsValid(MasterLevelSettings)) // 로그 체크
+	{
+		UE_LOG(LogTemp, Error, TEXT("MasterLevelSettings 가 유효하지 않습니다!"));
+		return;
+	}
+
+	if (!IsValid(MasterLevelSettings->LevelTable))
+	{
+		UE_LOG(LogTemp, Error, TEXT("LevelTable 이 유효하지 않습니다!"));
+		return;
+	}
 
 	FString MapName = GetWorld()->GetMapName();
 	MapName.RemoveFromStart(GetWorld()->StreamingLevelsPrefix);
@@ -81,11 +91,6 @@ void AProjectHPlayerController::FetchLevelData()
 		CurrentLevelRow = *FoundRow;
 		bHasValidLevelData = true;
 		UE_LOG(LogTemp, Log, TEXT("성공: %s 행 데이터를 찾았습니다."), *RowName.ToString());
-	}
-	else
-	{
-		bHasValidLevelData = false;
-		UE_LOG(LogTemp, Error, TEXT("실패: %s 이름과 일치하는 행이 테이블에 없습니다!"), *RowName.ToString());
 	}
 }
 
