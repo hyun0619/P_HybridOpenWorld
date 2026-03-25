@@ -11,6 +11,7 @@
 #include "Data/CameraPresetDataAsset.h"
 #include "Game/ProjectHGameInstance.h"
 #include "Input/ProjectHInputComponent.h"
+#include "Camera/ProjectHCameraSubsystem.h"
 
 AProjectHPlayerController::AProjectHPlayerController()
 {
@@ -114,6 +115,17 @@ void AProjectHPlayerController::ApplyInitialLevelSetup()
 		break;
 	}
 	ChangeInputState(DefaultState); // 기본 상태로 조작을 셋팅
+	
+	// [코드 추가] 서브시스템에 기본 카메라 등록
+	if (MainCameraActor && CurrentLevelRow.CameraPreset)
+	{
+		UProjectHCameraSubsystem* CameraSubsystem = GetWorld()->GetSubsystem<UProjectHCameraSubsystem>();
+		if (CameraSubsystem)
+		{
+			// 이제 블루프린트 노드 연결 없이 코드가 시작되자마자 기본값을 박아넣습니다.
+			CameraSubsystem->SetDefaultPreset(CurrentLevelRow.CameraPreset);
+		}
+	}
 	
 	HandleInitialSpawn(); // 캐릭터 스폰 배치
 	ApplyCameraPreset(); // 카메라 프리셋 적용
