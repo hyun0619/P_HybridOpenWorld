@@ -26,7 +26,7 @@ public:
 	
 protected:
 	virtual void BeginPlay() override;
-	
+	virtual void Tick(float DeltaSeconds) override;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Camera")
 	USpringArmComponent* SpringArm; // 스프링암
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Camera")
@@ -41,4 +41,12 @@ protected:
 	float CameraLagSpeed = 3.0f; // 낮을수록 더 부드럽고 느리게 따라옴 (보통 3~10 사이)
 	UPROPERTY(EditAnywhere, Category = "Camera|Lag")
 	float CameraRotationLagSpeed = 10.0f; // 회전 시 부드러움
+	
+private:
+	// 이전에 적용되었던 프리셋을 기억하는 변수
+	UPROPERTY()
+	class UCameraPresetDataAsset* LastPreset = nullptr;
+
+	// 게임 시작 후 첫 프레임인지 확인하는 변수
+	bool bIsFirstTick = true;
 };
