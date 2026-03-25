@@ -10,7 +10,7 @@
  * 레벨별 카메라 프리셋 데이터
  */
 UCLASS(BlueprintType)
-class HYBRIDOPENWORLD_API UCameraPresetDataAsset : public UDataAsset
+class HYBRIDOPENWORLD_API UCameraPresetDataAsset : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
 	
@@ -24,7 +24,10 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Camera|Settings", meta=(DisplayName="카메라가 캐릭터를 따라가는 속도", ToolTip = "높을수록 즉각적으로 반응"))
 	float TrackingInterpSpeed = 5.0f;
 	UPROPERTY(EditAnywhere, Category = "Camera|Movement", meta=(DisplayName="캐릭터 추적 여부", ToolTip = "체크하면 캐릭터를 따라가고, 해제하면 고정된 위치에서 촬영"))
+	
 	bool bFollowPawn = true;
+	UPROPERTY(EditAnywhere, Category="Camera|Transition", meta=(DisplayName="카메라 전환 시간", ToolTip = "0이면 즉시 전환, 2.0이면 2초 동안 이동"))
+	float BlendTime = 2.0f;
 	
 	UPROPERTY(EditAnywhere, Category = "Camera|TiltShift", meta=(DisplayName="틸트 쉬프트 활성화"))
 	bool bEnableTiltShift = false;
