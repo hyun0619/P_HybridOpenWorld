@@ -22,7 +22,6 @@ class HYBRIDOPENWORLD_API AProjectHPlayerController : public APlayerController
 	
 public:
 	AProjectHPlayerController();
-	virtual void PlayerTick(float DeltaTime) override;
 	
 	AProjectHCameraActor* GetMainCameraActor() const; // Character가 카메라 방향 읽어가게끔
 	
@@ -48,7 +47,6 @@ private:
 	void FetchLevelData(); // 현재 레벨 타입에 맞는 데이터를 테이블에서 검색 및 캐싱
 	void ApplyInitialLevelSetup(); // 검색된 레벨 환경 설정 (스폰, 카메라, 입력)
 	void HandleInitialSpawn(); // 캐릭터 스폰 및 배치 로직
-	void ApplyCameraPreset(); // 카메라 프리셋 수치 적용
 	
 	UPROPERTY()
 	AProjectHCameraActor* MainCameraActor; // 현재 제어 중인 카메라 참조

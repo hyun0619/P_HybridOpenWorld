@@ -21,7 +21,7 @@ public:
 	AProjectHCameraActor();
 	
 	void UpdateCameraSettings(float TargetArmLength, float FOV, FRotator Rotation); // 컨트롤러에서 넘겨준 수치로 카메라를 즉시 변경
-	void UpdatePostProcessSettings(float InFocalDist, float InFStop, float InSensorWidth, float InNearBlur, float InFarBlur, float InFarTransition); // 컨트롤러에서 넘겨준 수치로 포스트 프로세스 업데이트
+	void UpdatePostProcessSettings(bool bEnable,float InFocalDist, float InFStop, float InSensorWidth, float InNearBlur, float InFarBlur, float InFarTransition); // 컨트롤러에서 넘겨준 수치로 포스트 프로세스 업데이트
 	FVector GetCameraTargetLocation() const; // 스트리밍 소스가 바라볼 지점 계산
 	
 protected:
@@ -42,11 +42,10 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Camera|Lag")
 	float CameraRotationLagSpeed = 10.0f; // 회전 시 부드러움
 	
+	// (상단은 동일하게 유지하시고, private 영역만 이렇게 수정해주세요)
 private:
-	// 이전에 적용되었던 프리셋을 기억하는 변수
 	UPROPERTY()
-	class UCameraPresetDataAsset* LastPreset = nullptr;
+	AActor* LastVolume = nullptr;
 
-	// 게임 시작 후 첫 프레임인지 확인하는 변수
 	bool bIsFirstTick = true;
 };

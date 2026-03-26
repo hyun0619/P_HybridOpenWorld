@@ -40,21 +40,6 @@ void AProjectHPlayerController::BeginPlay()
 	}
 }
 
-void AProjectHPlayerController::PlayerTick(float DeltaTime)
-{
-	Super::PlayerTick(DeltaTime);
-	
-	if (bCachedFollowPawn && IsValid(MainCameraActor) && IsValid(GetPawn()))
-	{
-		const FVector TargetLocation = GetPawn()->GetActorLocation();
-		const FVector CurrentLocation = MainCameraActor->GetActorLocation();
-        
-		// VInterpTo를 사용하여 카메라가 캐릭터를 부드럽게 추적
-		FVector SmoothLocation = FMath::VInterpTo(CurrentLocation, TargetLocation, DeltaTime, CurrentTrackingSpeed);
-		MainCameraActor->SetActorLocation(SmoothLocation);
-	}
-}
-
 void AProjectHPlayerController::InitEssentialReferences()
 {
 	MainCameraActor = Cast<AProjectHCameraActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AProjectHCameraActor::StaticClass()));
@@ -116,19 +101,18 @@ void AProjectHPlayerController::ApplyInitialLevelSetup()
 	}
 	ChangeInputState(DefaultState); // 기본 상태로 조작을 셋팅
 	
-	// [코드 추가] 서브시스템에 기본 카메라 등록
+	// [코드 수정] 서브시스템에 기본 카메라 등록
 	if (MainCameraActor && CurrentLevelRow.CameraPreset)
 	{
 		UProjectHCameraSubsystem* CameraSubsystem = GetWorld()->GetSubsystem<UProjectHCameraSubsystem>();
 		if (CameraSubsystem)
 		{
-			// 이제 블루프린트 노드 연결 없이 코드가 시작되자마자 기본값을 박아넣습니다.
+			// ★ 수정: Settings가 아니라 CameraPreset(DA 원본)을 던져줍니다!
 			CameraSubsystem->SetDefaultPreset(CurrentLevelRow.CameraPreset);
 		}
 	}
 	
 	HandleInitialSpawn(); // 캐릭터 스폰 배치
-	ApplyCameraPreset(); // 카메라 프리셋 적용
 }
 
 void AProjectHPlayerController::HandleInitialSpawn()
@@ -155,28 +139,6 @@ void AProjectHPlayerController::HandleInitialSpawn()
 
 		// 사용한 태그 초기화
 		GI->PendingSpawnTag = FGameplayTag::EmptyTag;
-	}
-}
-
-void AProjectHPlayerController::ApplyCameraPreset()
-{
-	if (MainCameraActor && CurrentLevelRow.CameraPreset)
-	{
-		auto* P = CurrentLevelRow.CameraPreset;
-
-		// 기본 설정 적용
-		MainCameraActor->UpdateCameraSettings(P->TargetArmLength, P->FieldOfView, P->Rotation);
-		CurrentTrackingSpeed = P->TrackingInterpSpeed;
-		bCachedFollowPawn = P->bFollowPawn;
-
-		// 틸트 쉬프트 효과 적용
-		if (P->bEnableTiltShift)
-		{
-			MainCameraActor->UpdatePostProcessSettings(
-				P->ManualFocusDistance, P->ApertureFStop, P->SensorWidth,
-				P->NearBlurRadius, P->FarBlurRadius, P->FarTransitionRegion
-			);
-		}
 	}
 }
 

@@ -11,10 +11,9 @@ public class HybridOpenWorld : ModuleRules
         PublicDependencyModuleNames.AddRange(new string[]
         {
 	        "Core", "CoreUObject", "Engine", "InputCore", "NavigationSystem", "AIModule", "Niagara", "EnhancedInput",
-	        "GameplayTags" // FGameplayTag
+	        "GameplayTags", // FGameplayTag
         });
         
-        PrivateDependencyModuleNames.AddRange(new string[] {  });
         PublicIncludePaths.AddRange(new string[] {"HybridOpenWorld"});
     }
 	
