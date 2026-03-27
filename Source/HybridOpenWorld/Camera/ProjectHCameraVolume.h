@@ -21,9 +21,6 @@ public:
 	FCameraPresetSettings GetCameraSettings() const { return LocalSettings; }
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="Camera Volume")
-	FBox GetVolumeBounds() const;
-
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category="Camera Volume")
 	FVector GetVolumeCenter() const;
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="Camera Volume")
@@ -47,36 +44,35 @@ protected:
 	void ApplyPreviewPostProcessing();
 
 	// ══════════════════════════════════════════
-	// 00. Camera Settings (영구 저장 및 동기화 툴)
+	// 카메라 설정 > 01. 에셋 관리
 	// ══════════════════════════════════════════
 
-	UPROPERTY(EditAnywhere, Category="00. Camera Settings", meta=(DisplayName="연동할 DA 원본 (영구 저장용)"))
+	UPROPERTY(EditAnywhere, Category="카메라 설정|01. 에셋 관리", meta=(DisplayName="연동할 DA 원본"))
 	UCameraPresetDataAsset* LinkedDataAsset;
 
-	UFUNCTION(CallInEditor, Category="00. Camera Settings", meta=(DisplayName="1. DA 원본 불러오기"))
+	UFUNCTION(CallInEditor, Category="카메라 설정|01. 에셋 관리", meta=(DisplayName="DA 불러오기"))
 	void LoadFromDataAsset();
 
-	UFUNCTION(CallInEditor, Category="00. Camera Settings", meta=(DisplayName="2. DA 원본에 덮어쓰기 (저장)"))
+	UFUNCTION(CallInEditor, Category="카메라 설정|01. 에셋 관리", meta=(DisplayName="DA에 저장하기"))
 	void SaveToDataAsset();
 
-	UPROPERTY(EditAnywhere, Category="00. Camera Settings",
-		meta=(DisplayName="우선순위 (Priority)",
-			  ToolTip="높을수록 우선 적용. 같은 영역에 볼륨이 겹칠 때 더 높은 우선순위가 이깁니다"))
+	UPROPERTY(EditAnywhere, Category="카메라 설정|01. 에셋 관리",
+		meta=(DisplayName="우선순위", ToolTip="높을수록 우선 적용"))
 	int32 Priority = 0;
 
-	UPROPERTY(EditAnywhere, Category="00. Camera Settings", meta=(ShowOnlyInnerProperties))
+	// ══════════════════════════════════════════
+	// 카메라 설정 > 02. 세부 설정
+	// (LocalSettings의 내부 카테고리 1/2/3이 하위에 표시됨)
+	// ══════════════════════════════════════════
+
+	UPROPERTY(EditAnywhere, Category="카메라 설정|02. 세부 설정", meta=(ShowOnlyInnerProperties))
 	FCameraPresetSettings LocalSettings;
 
 	// ══════════════════════════════════════════
-	// 01. 볼륨 레이아웃
+	// 카메라 설정 > 03. 볼륨 레이아웃
 	// ══════════════════════════════════════════
 
-	UPROPERTY(EditAnywhere, Category="01. Volume Layout",
-		meta=(DisplayName="볼륨 중심 오프셋",
-			  ToolTip="CollisionBox의 중심을 액터 원점에서 이동합니다"))
-	FVector VolumeOffset = FVector::ZeroVector;
-
-	UPROPERTY(EditAnywhere, Category="01. Volume Layout",
+	UPROPERTY(EditAnywhere, Category="카메라 설정|03. 볼륨 레이아웃",
 		meta=(DisplayName="볼륨 크기 (Half Extent)"))
 	FVector VolumeExtent = FVector(500.f, 500.f, 200.f);
 

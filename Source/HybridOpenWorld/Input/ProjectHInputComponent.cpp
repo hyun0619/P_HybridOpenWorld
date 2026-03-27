@@ -15,22 +15,27 @@ void UProjectHInputComponent::ApplyInputState(APlayerController* PC, EInputState
 	auto* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer());
 	if (!Subsystem) return;
 
-	// 기존 매핑 초기화 및 글로벌 매핑 추가
 	Subsystem->ClearAllMappings();
 	if (IMC_Global) Subsystem->AddMappingContext(IMC_Global, 0);
-	
-	switch (NewState) // 상태에 따른 IMC 및 마우스/입력 모드 설정
+
+	switch (NewState)
 	{
 	case EInputState::WorldMap:
 		if (IMC_WorldMap) Subsystem->AddMappingContext(IMC_WorldMap, 1);
-		PC->SetInputMode(FInputModeGameAndUI().SetHideCursorDuringCapture(false).SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock));
+		PC->SetInputMode(FInputModeGameAndUI()
+			.SetHideCursorDuringCapture(false)
+			.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock));
 		PC->bShowMouseCursor = true;
 		break;
 
 	case EInputState::Detailed:
+		// ★ 수정: GameOnly → GameAndUI 로 변경
+		// WASD 이동 + 마우스 커서 표시 + UI 상호작용 + 엣지스크롤 가능
 		if (IMC_Detailed) Subsystem->AddMappingContext(IMC_Detailed, 1);
-		PC->SetInputMode(FInputModeGameOnly());
-		PC->bShowMouseCursor = false;
+		PC->SetInputMode(FInputModeGameAndUI()
+			.SetHideCursorDuringCapture(false)
+			.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock));
+		PC->bShowMouseCursor = true;
 		break;
 
 	case EInputState::UIOverlay:
@@ -39,12 +44,12 @@ void UProjectHInputComponent::ApplyInputState(APlayerController* PC, EInputState
 		PC->bShowMouseCursor = true;
 		break;
 
-	case EInputState::Dialogue: // 대화 넘기기 키(Global)만 활성화, 캐릭터 이동 불가
+	case EInputState::Dialogue:
 		PC->SetInputMode(FInputModeGameAndUI().SetHideCursorDuringCapture(true));
 		PC->bShowMouseCursor = false;
 		break;
 
-	case EInputState::Cinematic: // 연출 시 활성화, 모든 조작 불가
+	case EInputState::Cinematic:
 		PC->SetInputMode(FInputModeGameOnly());
 		PC->bShowMouseCursor = false;
 		break;
