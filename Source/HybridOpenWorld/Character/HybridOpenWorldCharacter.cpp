@@ -31,6 +31,15 @@ void AHybridOpenWorldCharacter::Tick(float DeltaSeconds)
     Super::Tick(DeltaSeconds);
 }
 
+// 캐릭터가 컨트롤러를 부여받는 시점에 PC를 미리 캐싱
+void AHybridOpenWorldCharacter::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+	
+	// 시작 시점에 딱 한 번만 Cast 연산을 수행하여 성능 확보
+	CachedPC = Cast<AProjectHPlayerController>(NewController);
+}
+
 void AHybridOpenWorldCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
@@ -49,32 +58,16 @@ void AHybridOpenWorldCharacter::HandleMove_KeyBoard(const FInputActionValue& Val
 {
 	FVector2D MoveVector = Value.Get<FVector2D>();
 	
-	if (AProjectHPlayerController* PC = Cast<AProjectHPlayerController>(GetController()))
+	// Cast 연산 제거. 미리 저장해둔 PC 유효한지만 체크
+	if (CachedPC.IsValid())
 	{
-		if (AProjectHCameraActor* MainCamera = PC->GetMainCameraActor()) // 카메라가 보고 있는 방향을 기준으로 이동
+		// PC에서 메인 카메라 액터를 가져옴
+		if (AProjectHCameraActor* MainCamera = CachedPC->GetMainCameraActor()) 
 		{
-			// ══════════════════════════════════════════════════════
-			// ★ 핵심 버그 수정
-			//
-			// [이전 코드 - 버그]
-			//   MainCamera->GetActorRotation().Yaw
-			//   → CameraActor의 루트 컴포넌트 회전을 읽음
-			//   → 볼륨 전환 시 SpringArm이 별도로 보간하면서
-			//     "화면에 보이는 방향"과 "이동 기준 방향"이 어긋남
-			//
-			// [수정 코드]
-			//   MainCamera->GetCameraViewRotation().Yaw
-			//   → SpringArm의 월드 회전을 읽음
-			//   → 화면에 실제로 보이는 카메라 방향 = 이동 기준 방향
-			//   → 어떤 볼륨에 있든 WASD가 화면 기준 상하좌우로 작동
-			// ══════════════════════════════════════════════════════
-			
-			// 카메라 회전값 중 Yaw만 추출하여 방향 계산
 			const FRotator YawRotation(0, MainCamera->GetCameraViewRotation().Yaw, 0);
 			const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
 			const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 
-			// X를 전진에 Y를 좌우에 매핑
 			AddMovementInput(ForwardDirection, MoveVector.X);
 			AddMovementInput(RightDirection, MoveVector.Y);
 		}

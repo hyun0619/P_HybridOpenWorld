@@ -13,14 +13,14 @@
 #include "Input/ProjectHInputComponent.h"
 #include "Camera/ProjectHCameraSubsystem.h"
 
+
 AProjectHPlayerController::AProjectHPlayerController()
 {
 	bShowMouseCursor = true;
 	bEnableClickEvents = true;
 	bEnableMouseOverEvents = true;
 	PrimaryActorTick.TickGroup = TG_PostPhysics;
-
-	// ★ 컴포넌트를 C++ 생성자에서 생성 — 에디터에서 별도 추가 불필요
+	
 	InputManager = CreateDefaultSubobject<UProjectHInputComponent>(TEXT("InputManager"));
 	EdgeScrollComponent = CreateDefaultSubobject<UProjectHEdgeScrollComponent>(TEXT("EdgeScrollComponent"));
 	OcclusionFadeComponent = CreateDefaultSubobject<UProjectHOcclusionFadeComponent>(TEXT("OcclusionFadeComponent"));
@@ -106,4 +106,38 @@ void AProjectHPlayerController::ChangeInputState(EInputState NewState)
 void AProjectHPlayerController::RevertToDefaultState()
 {
 	ChangeInputState(DefaultState);
+}
+
+void AProjectHPlayerController::SetupInputComponent()
+{
+	Super::SetupInputComponent();
+
+	if (UEnhancedInputComponent* EnhancedInputComp = Cast<UEnhancedInputComponent>(InputComponent))
+	{
+		// 디테일 패널에서 IA_LookAround가 잘 할당되어 있는지 확인
+		if (IA_LookAround)
+		{
+			// Started = 우클릭 누르기 시작할 때
+			EnhancedInputComp->BindAction(IA_LookAround, ETriggerEvent::Started, this, &AProjectHPlayerController::OnLookAroundStarted);
+            
+			// Completed = 우클릭을 떼었을 때
+			EnhancedInputComp->BindAction(IA_LookAround, ETriggerEvent::Completed, this, &AProjectHPlayerController::OnLookAroundCompleted);
+		}
+	}
+}
+
+void AProjectHPlayerController::OnLookAroundStarted(const FInputActionValue& Value)
+{
+	if (EdgeScrollComponent)
+	{
+		EdgeScrollComponent->SetLookAroundActive(true);
+	}
+}
+
+void AProjectHPlayerController::OnLookAroundCompleted(const FInputActionValue& Value)
+{
+	if (EdgeScrollComponent)
+	{
+		EdgeScrollComponent->SetLookAroundActive(false);
+	}
 }

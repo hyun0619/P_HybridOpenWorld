@@ -6,9 +6,10 @@
 #include "Data/LevelSettingsData.h"
 #include "ProjectHPlayerController.generated.h"
 
-class UNiagaraSystem;
+
 class AProjectHCameraActor;
 class UInputAction;
+class UInputMappingContext;
 class UGameMasterAsset;
 class UProjectHInputComponent;
 class UProjectHEdgeScrollComponent;
@@ -17,47 +18,51 @@ class UProjectHOcclusionFadeComponent;
 UCLASS()
 class HYBRIDOPENWORLD_API AProjectHPlayerController : public APlayerController
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
 public:
-	AProjectHPlayerController();
-
-	AProjectHCameraActor* GetMainCameraActor() const;
-
-	UFUNCTION(BlueprintCallable, Category="InputState")
-	void ChangeInputState(EInputState NewState);
-	UFUNCTION(BlueprintCallable, Category="InputState")
-	void RevertToDefaultState();
+    AProjectHPlayerController();
+    
+    AProjectHCameraActor* GetMainCameraActor() const;
+    
+    UFUNCTION(BlueprintCallable, Category="InputState")
+    void ChangeInputState(EInputState NewState);
+    UFUNCTION(BlueprintCallable, Category="InputState")
+    void RevertToDefaultState();
 
 protected:
-	virtual void BeginPlay() override;
+    virtual void BeginPlay() override;
+    virtual void SetupInputComponent() override;
+    
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input|Actions")
+    UInputAction* IA_LookAround; // 둘러보기 액션
+    
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
+    UProjectHInputComponent* InputManager;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
+    UProjectHEdgeScrollComponent* EdgeScrollComponent;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
+    UProjectHOcclusionFadeComponent* OcclusionFadeComponent;
+    
+    EInputState DefaultState;
+    EInputState CurrentState;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
-	UProjectHInputComponent* InputManager;
-
-	/** ★ 엣지스크롤 컴포넌트 — 우클릭+마우스 가장자리로 카메라 이동 */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
-	UProjectHEdgeScrollComponent* EdgeScrollComponent;
-
-	/** ★ 장애물 투명화 컴포넌트 — 카메라↔캐릭터 사이 장애물 페이드 */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
-	UProjectHOcclusionFadeComponent* OcclusionFadeComponent;
-
-	EInputState DefaultState;
-	EInputState CurrentState;
-
-	UPROPERTY(EditDefaultsOnly, Category="LevelData")
-	UGameMasterAsset* MasterLevelSettings;
-	FLevelSettingsRow CurrentLevelRow;
+    UPROPERTY(EditDefaultsOnly, Category="LevelData")
+    UGameMasterAsset* MasterLevelSettings;
+    
+    FLevelSettingsRow CurrentLevelRow;
 
 private:
-	void InitEssentialReferences();
-	void FetchLevelData();
-	void ApplyInitialLevelSetup();
-	void HandleInitialSpawn();
+    void OnLookAroundStarted(const FInputActionValue& Value);
+    void OnLookAroundCompleted(const FInputActionValue& Value);
+    
+    void InitEssentialReferences();
+    void FetchLevelData();
+    void ApplyInitialLevelSetup();
+    void HandleInitialSpawn();
 
-	UPROPERTY()
-	AProjectHCameraActor* MainCameraActor;
+    UPROPERTY()
+    AProjectHCameraActor* MainCameraActor;
 
-	bool bHasValidLevelData = false;
+    bool bHasValidLevelData = false;
 };
