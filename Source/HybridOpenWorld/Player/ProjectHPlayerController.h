@@ -12,7 +12,7 @@ class UInputAction;
 class UInputMappingContext;
 class UGameMasterAsset;
 class UProjectHInputComponent;
-class UProjectHEdgeScrollComponent;
+class UProjectHLookAroundComponent;
 class UProjectHOcclusionFadeComponent;
 
 UCLASS()
@@ -40,7 +40,7 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
     UProjectHInputComponent* InputManager;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
-    UProjectHEdgeScrollComponent* EdgeScrollComponent;
+    UProjectHLookAroundComponent* EdgeScrollComponent;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
     UProjectHOcclusionFadeComponent* OcclusionFadeComponent;
     

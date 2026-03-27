@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "ProjectHEdgeScrollComponent.generated.h"
+#include "ProjectHLookAroundComponent.generated.h"
 
 class AProjectHCameraActor;
 class AProjectHPlayerController;
@@ -12,12 +12,12 @@ class AProjectHPlayerController;
  * 마우스를 화면 중심에서 멀리 이동하면 카메라가 해당 방향으로 패닝
  */
 UCLASS(ClassGroup=(Camera), meta=(BlueprintSpawnableComponent))
-class HYBRIDOPENWORLD_API UProjectHEdgeScrollComponent : public UActorComponent
+class HYBRIDOPENWORLD_API UProjectHLookAroundComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
 public:
-	UProjectHEdgeScrollComponent();
+	UProjectHLookAroundComponent();
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	// 컨트롤러에서 우클릭 상태를 전달받을 함수

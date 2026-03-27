@@ -3,7 +3,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "Blueprint/AIBlueprintHelperLibrary.h"
 #include "Camera/ProjectHCameraActor.h"
-#include "Camera/ProjectHEdgeScrollComponent.h"
+#include "Camera/ProjectHLookAroundComponent.h"
 #include "Camera/ProjectHOcclusionFadeComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Data/LevelSettingsData.h"
@@ -22,7 +22,7 @@ AProjectHPlayerController::AProjectHPlayerController()
 	PrimaryActorTick.TickGroup = TG_PostPhysics;
 	
 	InputManager = CreateDefaultSubobject<UProjectHInputComponent>(TEXT("InputManager"));
-	EdgeScrollComponent = CreateDefaultSubobject<UProjectHEdgeScrollComponent>(TEXT("EdgeScrollComponent"));
+	EdgeScrollComponent = CreateDefaultSubobject<UProjectHLookAroundComponent>(TEXT("EdgeScrollComponent"));
 	OcclusionFadeComponent = CreateDefaultSubobject<UProjectHOcclusionFadeComponent>(TEXT("OcclusionFadeComponent"));
 }
 

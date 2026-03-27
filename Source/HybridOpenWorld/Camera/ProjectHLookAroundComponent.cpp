@@ -1,16 +1,16 @@
-#include "ProjectHEdgeScrollComponent.h"
+#include "ProjectHLookAroundComponent.h"
 #include "ProjectHCameraActor.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "Player/ProjectHPlayerController.h"
 
-UProjectHEdgeScrollComponent::UProjectHEdgeScrollComponent()
+UProjectHLookAroundComponent::UProjectHLookAroundComponent()
 {
     PrimaryComponentTick.bCanEverTick = true;
     PrimaryComponentTick.TickGroup = TG_PrePhysics;
 }
 
-void UProjectHEdgeScrollComponent::BeginPlay()
+void UProjectHLookAroundComponent::BeginPlay()
 {
     Super::BeginPlay();
 
@@ -18,13 +18,13 @@ void UProjectHEdgeScrollComponent::BeginPlay()
     CachedPC = Cast<AProjectHPlayerController>(GetOwner());
 }
 
-void UProjectHEdgeScrollComponent::SetLookAroundActive(bool bActive)
+void UProjectHLookAroundComponent::SetLookAroundActive(bool bActive)
 {
     bIsLookAroundActive = bActive;
 }
 
 // 컨트롤러가 이미 들고 있는 메인 카메라 반환
-AProjectHCameraActor* UProjectHEdgeScrollComponent::GetMainCamera() const
+AProjectHCameraActor* UProjectHLookAroundComponent::GetMainCamera() const
 {
     if (CachedPC.IsValid())
     {
@@ -33,7 +33,7 @@ AProjectHCameraActor* UProjectHEdgeScrollComponent::GetMainCamera() const
     return nullptr;
 }
 
-void UProjectHEdgeScrollComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+void UProjectHLookAroundComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
     Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
