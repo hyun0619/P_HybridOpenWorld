@@ -38,7 +38,23 @@ void AProjectHCameraActor::BeginPlay()
 }
 
 // ──────────────────────────────────────────────────
-// 레거시 호환 API
+// ★ 핵심 수정: 실제 카메라 뷰 방향 반환
+// ──────────────────────────────────────────────────
+
+FRotator AProjectHCameraActor::GetCameraViewRotation() const
+{
+	// SpringArm의 월드 회전 = 실제 화면에 보이는 카메라 방향
+	// GetActorRotation()은 카메라 액터의 루트 위치일 뿐,
+	// 볼륨 전환 중 SpringArm이 보간하면서 실제 뷰 방향과 달라질 수 있습니다.
+	if (SpringArm)
+	{
+		return SpringArm->GetComponentRotation();
+	}
+	return GetActorRotation();
+}
+
+// ──────────────────────────────────────────────────
+// 레거시 API
 // ──────────────────────────────────────────────────
 
 void AProjectHCameraActor::UpdateCameraSettings(float TargetArmLength, float FOV, FRotator Rotation)
@@ -90,7 +106,7 @@ FVector AProjectHCameraActor::GetCameraTargetLocation() const
 }
 
 // ──────────────────────────────────────────────────
-// 메인 Tick
+// Tick
 // ──────────────────────────────────────────────────
 
 void AProjectHCameraActor::Tick(float DeltaTime)
@@ -103,18 +119,29 @@ void AProjectHCameraActor::Tick(float DeltaTime)
 	FCameraPresetSettings TargetPreset;
 	if (!Subsystem->GetActivePreset(TargetPreset)) return;
 
-	// ─── 볼륨 변경 감지 ──────────────────────
-
 	AActor* ActiveInstigator = Subsystem->GetActiveInstigator();
 	AProjectHCameraVolume* ActiveVolume = Cast<AProjectHCameraVolume>(ActiveInstigator);
 
+	// ─── 볼륨 변경 감지 ──────────────────────
+
 	bool bVolumeChanged = (LastVolume != ActiveInstigator);
 	LastVolume = ActiveInstigator;
-	bool bHardCut = bIsFirstTick || (bVolumeChanged && TargetPreset.BlendTime <= 0.0f);
-	bIsTransitioning = bVolumeChanged && !bHardCut;
+
+	// ★ 퇴장 블렌드 오버라이드 소비
+	// 볼륨이 바뀌었고, 서브시스템에 ExitBlendTime 오버라이드가 있으면 그걸 사용
+	float EffectiveBlendTime = TargetPreset.BlendTime;
+	if (bVolumeChanged)
+	{
+		float ExitOverride;
+		if (Subsystem->ConsumeExitBlendOverride(ExitOverride))
+		{
+			EffectiveBlendTime = ExitOverride;
+		}
+	}
+
+	bool bHardCut = bIsFirstTick || (bVolumeChanged && EffectiveBlendTime <= 0.0f);
 	bIsFirstTick = false;
 
-	// ★ 캐싱: PlayerController/Pawn 참조
 	APlayerController* PC = GetWorld()->GetFirstPlayerController();
 	APawn* PlayerPawn = PC ? PC->GetPawn() : nullptr;
 
@@ -124,12 +151,11 @@ void AProjectHCameraActor::Tick(float DeltaTime)
 
 	if (TargetPreset.VolumeType == ECameraVolumeType::Static && ActiveVolume)
 	{
-		// ★ Static 모드: 볼륨 기준 고정 위치
-		TargetLoc = ActiveVolume->GetVolumeCenter() + ActiveVolume->GetActorRotation().RotateVector(TargetPreset.StaticCameraOffset);
+		TargetLoc = ActiveVolume->GetVolumeCenter()
+			+ ActiveVolume->GetActorRotation().RotateVector(TargetPreset.StaticCameraOffset);
 	}
 	else
 	{
-		// Dynamic 모드: 기존 로직
 		TargetLoc = ActiveInstigator ? ActiveInstigator->GetActorLocation() : GetActorLocation();
 		if (TargetPreset.bFollowPawn && PlayerPawn)
 		{
@@ -144,46 +170,45 @@ void AProjectHCameraActor::Tick(float DeltaTime)
 		TargetLoc = ClampToBounds(TargetLoc, ActiveVolume, TargetPreset);
 	}
 
-	// ─── [3. Blueprint 수정 기회] ────────────
+	// ─── [3. 타겟 회전 계산] ────────────────
 
-	TargetLoc = BP_ModifyTargetLocation(TargetLoc, TargetPreset);
-
-	// ─── [4. 타겟 회전 계산] ────────────────
-
-	FRotator TargetRot = TargetPreset.Rotation;
+	FRotator TargetRot;
 
 	if (TargetPreset.VolumeType == ECameraVolumeType::Static)
 	{
 		TargetRot = TargetPreset.StaticCameraRotation;
 		if (ActiveVolume)
 		{
-			// 볼륨 회전을 기준으로 카메라 회전 적용
-			TargetRot = ActiveVolume->GetActorTransform().TransformRotation(TargetPreset.StaticCameraRotation.Quaternion()).Rotator();
+			TargetRot = ActiveVolume->GetActorTransform()
+				.TransformRotation(TargetPreset.StaticCameraRotation.Quaternion()).Rotator();
 		}
 	}
-	else if (ActiveInstigator)
+	else
 	{
-		TargetRot = ActiveInstigator->GetActorTransform().TransformRotation(TargetPreset.Rotation.Quaternion()).Rotator();
+		TargetRot = TargetPreset.Rotation;
+		if (ActiveInstigator)
+		{
+			TargetRot = ActiveInstigator->GetActorTransform()
+				.TransformRotation(TargetPreset.Rotation.Quaternion()).Rotator();
+		}
 	}
 
-	// ★ 추가 카메라 롤 적용
-	if (FMath::Abs(TargetPreset.CameraRoll) > KINDA_SMALL_NUMBER)
-	{
-		TargetRot.Roll += TargetPreset.CameraRoll;
-	}
-
-	// Pawn Control Rotation
+	// Pawn Control Rotation 오버라이드
 	if (TargetPreset.bUsePawnControlRotation && PlayerPawn && PlayerPawn->GetController())
 	{
 		TargetRot = PlayerPawn->GetControlRotation();
 	}
 
-	// ─── [5. 래그/충돌/투영 설정 적용] ──────
+	// ─── [4. 래그/충돌/투영 적용] ───────────
 
 	ApplyLagSettings(TargetPreset, bHardCut);
 	ApplyCollisionSettings(TargetPreset);
 
-	// ─── [6. 실제 값 적용 및 보간] ──────────
+	// ─── [5. 실제 값 적용] ──────────────────
+
+	// 모드에 따른 FOV/OrthoWidth 결정
+	const float TargetFOV = TargetPreset.GetEffectiveFOV();
+	const float TargetOrthoW = TargetPreset.GetEffectiveOrthoWidth();
 
 	if (bHardCut)
 	{
@@ -201,24 +226,21 @@ void AProjectHCameraActor::Tick(float DeltaTime)
 		}
 
 		SpringArm->SetWorldRotation(TargetRot);
-		MainCamera->SetFieldOfView(TargetPreset.FieldOfView);
+		MainCamera->SetFieldOfView(TargetFOV);
 
-		// 래그 비활성화하고 즉시 업데이트
 		SpringArm->bEnableCameraLag = false;
 		SpringArm->bEnableCameraRotationLag = false;
 		SpringArm->UpdateChildTransforms();
 
 		if (PC && PC->PlayerCameraManager)
-		{
 			PC->PlayerCameraManager->SetGameCameraCutThisFrame();
-		}
 
 		ApplyProjectionSettings(TargetPreset, DeltaTime, true);
 	}
 	else
 	{
-		// 보간 속도 계산
-		float CamInterpSpeed = TargetPreset.BlendTime > 0.0f ? 5.0f / TargetPreset.BlendTime : 9999.0f;
+		// ★ 보간 속도: EffectiveBlendTime을 사용 (ExitBlendTime 반영됨)
+		float CamInterpSpeed = EffectiveBlendTime > 0.0f ? 5.0f / EffectiveBlendTime : 9999.0f;
 		float LocInterpSpeed = TargetPreset.bFollowPawn ? TargetPreset.TrackingInterpSpeed : CamInterpSpeed;
 
 		SetActorLocation(FMath::VInterpTo(GetActorLocation(), TargetLoc, DeltaTime, LocInterpSpeed));
@@ -235,30 +257,21 @@ void AProjectHCameraActor::Tick(float DeltaTime)
 		}
 
 		SpringArm->SetWorldRotation(FMath::RInterpTo(SpringArm->GetComponentRotation(), TargetRot, DeltaTime, CamInterpSpeed));
-		MainCamera->SetFieldOfView(FMath::FInterpTo(MainCamera->FieldOfView, TargetPreset.FieldOfView, DeltaTime, CamInterpSpeed));
+		MainCamera->SetFieldOfView(FMath::FInterpTo(MainCamera->FieldOfView, TargetFOV, DeltaTime, CamInterpSpeed));
 
 		ApplyProjectionSettings(TargetPreset, DeltaTime, false);
 	}
 
-	// ─── [7. 포스트 프로세스] ────────────────
+	// ─── [6. 포스트 프로세스] ────────────────
 
 	UpdatePostProcessSettings(TargetPreset.bEnableTiltShift,
 		TargetPreset.ManualFocusDistance, TargetPreset.ApertureFStop,
 		TargetPreset.SensorWidth, TargetPreset.NearBlurRadius,
 		TargetPreset.FarBlurRadius, TargetPreset.FarTransitionRegion);
-
-	// ─── [8. 디버그] ────────────────────────
-
-#if WITH_EDITOR
-	if (bDrawDebug)
-	{
-		DrawDebugInfo(TargetLoc, ActiveVolume, TargetPreset);
-	}
-#endif
 }
 
 // ──────────────────────────────────────────────────
-// ★ 바운드 클램핑 (핵심 기능)
+// 바운드 클램핑 (볼륨 로컬 공간에서 클램프)
 // ──────────────────────────────────────────────────
 
 FVector AProjectHCameraActor::ClampToBounds(const FVector& TargetLocation,
@@ -266,13 +279,8 @@ FVector AProjectHCameraActor::ClampToBounds(const FVector& TargetLocation,
 {
 	if (!Volume) return TargetLocation;
 
-	// ★ 볼륨의 로컬 공간에서 클램프 → 회전된 볼륨도 올바르게 처리
 	const FTransform VolumeTransform = Volume->GetActorTransform();
 	FVector LocalLoc = VolumeTransform.InverseTransformPosition(TargetLocation);
-
-	// 볼륨 오프셋 적용 (로컬 공간에서)
-	const FVector VolumeOffset = Volume->GetActorTransform().InverseTransformPosition(Volume->GetVolumeCenter())
-		- FVector::ZeroVector; // GetVolumeCenter의 로컬 기준점
 
 	const FVector Extent = Volume->GetVolumeExtent();
 	const float Padding = Preset.BoundsPadding;
@@ -284,50 +292,35 @@ FVector AProjectHCameraActor::ClampToBounds(const FVector& TargetLocation,
 
 	const int32 Flags = Preset.BoundsBlockFlags;
 
-	// X축
 	if (Flags & static_cast<int32>(ECameraBoundsBlockFlags::BlockMinX))
 		LocalLoc.X = FMath::Max(LocalLoc.X, -PaddedExtent.X);
 	if (Flags & static_cast<int32>(ECameraBoundsBlockFlags::BlockMaxX))
 		LocalLoc.X = FMath::Min(LocalLoc.X, PaddedExtent.X);
-
-	// Y축
 	if (Flags & static_cast<int32>(ECameraBoundsBlockFlags::BlockMinY))
 		LocalLoc.Y = FMath::Max(LocalLoc.Y, -PaddedExtent.Y);
 	if (Flags & static_cast<int32>(ECameraBoundsBlockFlags::BlockMaxY))
 		LocalLoc.Y = FMath::Min(LocalLoc.Y, PaddedExtent.Y);
-
-	// Z축
 	if (Flags & static_cast<int32>(ECameraBoundsBlockFlags::BlockMinZ))
 		LocalLoc.Z = FMath::Max(LocalLoc.Z, -PaddedExtent.Z);
 	if (Flags & static_cast<int32>(ECameraBoundsBlockFlags::BlockMaxZ))
 		LocalLoc.Z = FMath::Min(LocalLoc.Z, PaddedExtent.Z);
 
-	// 월드 공간으로 다시 변환
 	return VolumeTransform.TransformPosition(LocalLoc);
 }
 
 // ──────────────────────────────────────────────────
-// 래그 설정 적용
+// 래그 / 투영 / 충돌 적용
 // ──────────────────────────────────────────────────
 
 void AProjectHCameraActor::ApplyLagSettings(const FCameraPresetSettings& Preset, bool bHardCut)
 {
-	if (bHardCut)
-	{
-		// 하드컷 시 래그 잠시 비활성화 (UpdateChildTransforms 후 재활성화는 다음 프레임)
-		return;
-	}
+	if (bHardCut) return; // 하드컷 시 래그 비활성화됨 (Tick에서 직접 처리)
 
 	SpringArm->bEnableCameraLag = Preset.bEnableLocationLag && bUseCameraLag;
 	SpringArm->CameraLagSpeed = Preset.LocationLagSpeed;
-
 	SpringArm->bEnableCameraRotationLag = Preset.bEnableRotationLag;
 	SpringArm->CameraRotationLagSpeed = Preset.RotationLagSpeed;
 }
-
-// ──────────────────────────────────────────────────
-// 투영 모드 적용
-// ──────────────────────────────────────────────────
 
 void AProjectHCameraActor::ApplyProjectionSettings(const FCameraPresetSettings& Preset,
 	float DeltaTime, bool bHardCut)
@@ -335,15 +328,9 @@ void AProjectHCameraActor::ApplyProjectionSettings(const FCameraPresetSettings& 
 	if (Preset.ProjectionType == ECameraProjectionType::Orthographic)
 	{
 		MainCamera->SetProjectionMode(ECameraProjectionMode::Orthographic);
-
-		if (bHardCut)
-		{
-			CurrentOrthoWidth = Preset.OrthoWidth;
-		}
-		else
-		{
-			CurrentOrthoWidth = FMath::FInterpTo(CurrentOrthoWidth, Preset.OrthoWidth, DeltaTime, 5.0f);
-		}
+		const float TargetOrthoW = Preset.GetEffectiveOrthoWidth();
+		CurrentOrthoWidth = bHardCut ? TargetOrthoW
+			: FMath::FInterpTo(CurrentOrthoWidth, TargetOrthoW, DeltaTime, 5.0f);
 		MainCamera->SetOrthoWidth(CurrentOrthoWidth);
 	}
 	else
@@ -352,66 +339,12 @@ void AProjectHCameraActor::ApplyProjectionSettings(const FCameraPresetSettings& 
 	}
 }
 
-// ──────────────────────────────────────────────────
-// 충돌 설정 적용
-// ──────────────────────────────────────────────────
-
 void AProjectHCameraActor::ApplyCollisionSettings(const FCameraPresetSettings& Preset)
 {
 	SpringArm->bDoCollisionTest = Preset.bEnableCameraCollision;
-
 	if (Preset.bEnableCameraCollision)
 	{
 		SpringArm->ProbeSize = Preset.CollisionProbeRadius;
 		SpringArm->ProbeChannel = ECC_Camera;
 	}
 }
-
-// ──────────────────────────────────────────────────
-// 디버그 시각화
-// ──────────────────────────────────────────────────
-
-#if WITH_EDITOR
-void AProjectHCameraActor::DrawDebugInfo(const FVector& TargetLoc,
-	const AProjectHCameraVolume* Volume, const FCameraPresetSettings& Preset) const
-{
-	UWorld* World = GetWorld();
-	if (!World) return;
-
-	// 카메라 위치 → 타겟 라인
-	DrawDebugLine(World, MainCamera->GetComponentLocation(), TargetLoc,
-		FColor::Yellow, false, -1.f, 0, 1.5f);
-	DrawDebugSphere(World, TargetLoc, 15.f, 8, FColor::Yellow, false, -1.f);
-
-	// 바운드 박스 (활성 시)
-	if (Volume && Preset.bEnableBoundsBlocking)
-	{
-		const FVector Center = Volume->GetVolumeCenter();
-		const FVector Extent = Volume->GetVolumeExtent();
-		const float Padding = Preset.BoundsPadding;
-		const FVector PaddedExtent = Extent - FVector(Padding);
-
-		// 원본 볼륨: 시안
-		DrawDebugBox(World, Center, Extent, Volume->GetActorQuat(), FColor::Cyan, false, -1.f, 0, 1.f);
-		// 유효 카메라 영역: 노란색
-		DrawDebugBox(World, Center, PaddedExtent, Volume->GetActorQuat(), FColor::Yellow, false, -1.f, 0, 2.f);
-	}
-
-	// 카메라 위치
-	DrawDebugSphere(World, MainCamera->GetComponentLocation(), 20.f, 12, FColor::Green, false, -1.f);
-
-	// 전환 상태
-	if (bIsTransitioning)
-	{
-		DrawDebugString(World, GetActorLocation() + FVector(0, 0, 80),
-			TEXT("TRANSITIONING"), nullptr, FColor::White, 0.f, true);
-	}
-
-	// 현재 모드
-	FString ModeStr = (Preset.VolumeType == ECameraVolumeType::Static) ? TEXT("STATIC") : TEXT("DYNAMIC");
-	FString ProjStr = (Preset.ProjectionType == ECameraProjectionType::Orthographic) ? TEXT("ORTHO") : TEXT("PERSP");
-	DrawDebugString(World, GetActorLocation() + FVector(0, 0, 50),
-		FString::Printf(TEXT("%s | %s"), *ModeStr, *ProjStr),
-		nullptr, FColor::Cyan, 0.f, true);
-}
-#endif

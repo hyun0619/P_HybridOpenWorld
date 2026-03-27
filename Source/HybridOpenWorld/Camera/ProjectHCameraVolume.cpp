@@ -8,7 +8,7 @@
 
 AProjectHCameraVolume::AProjectHCameraVolume()
 {
-	PrimaryActorTick.bCanEverTick = false; // ★ 퍼포먼스: 이벤트 기반, Tick 불필요
+	PrimaryActorTick.bCanEverTick = false;
 
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 
@@ -33,7 +33,6 @@ AProjectHCameraVolume::AProjectHCameraVolume()
 	PreviewCamera->SetupAttachment(PreviewSpringArm);
 	PreviewCamera->bHiddenInGame = true;
 
-	// 오버랩 바인딩은 생성자에서 수행 (BeginPlay 이전에도 에디터 PIE에서 작동)
 	CollisionBox->OnComponentBeginOverlap.AddDynamic(this, &AProjectHCameraVolume::OnOverlapBegin);
 	CollisionBox->OnComponentEndOverlap.AddDynamic(this, &AProjectHCameraVolume::OnOverlapEnd);
 }
@@ -56,7 +55,6 @@ FBox AProjectHCameraVolume::GetVolumeBounds() const
 
 FVector AProjectHCameraVolume::GetVolumeCenter() const
 {
-	// 액터 위치 + 볼륨 오프셋 (로컬→월드 변환)
 	return GetActorLocation() + GetActorRotation().RotateVector(VolumeOffset);
 }
 
@@ -68,8 +66,6 @@ FVector AProjectHCameraVolume::GetVolumeExtent() const
 void AProjectHCameraVolume::UpdateSettingsAtRuntime(const FCameraPresetSettings& NewSettings)
 {
 	LocalSettings = NewSettings;
-
-	// 현재 이 볼륨이 활성 상태라면 서브시스템에 갱신 알림
 	if (UProjectHCameraSubsystem* Subsystem = GetWorld()->GetSubsystem<UProjectHCameraSubsystem>())
 	{
 		Subsystem->NotifyVolumeSettingsChanged(this);
@@ -77,7 +73,7 @@ void AProjectHCameraVolume::UpdateSettingsAtRuntime(const FCameraPresetSettings&
 }
 
 // ──────────────────────────────────────────────────
-// Overlap Handlers
+// Overlap
 // ──────────────────────────────────────────────────
 
 void AProjectHCameraVolume::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
@@ -108,57 +104,50 @@ void AProjectHCameraVolume::OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AA
 }
 
 // ──────────────────────────────────────────────────
-// Editor: 에디터 뷰포트 프리뷰
+// 에디터 프리뷰
 // ──────────────────────────────────────────────────
 
 void AProjectHCameraVolume::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
 
-	// CollisionBox 크기와 오프셋 동기화
 	if (CollisionBox)
 	{
 		CollisionBox->SetBoxExtent(VolumeExtent);
 		CollisionBox->SetRelativeLocation(VolumeOffset);
 	}
 
-	// 카메라 프리뷰 갱신
 	if (PreviewSpringArm && PreviewCamera)
 	{
 		if (LocalSettings.VolumeType == ECameraVolumeType::Static)
 		{
-			// Static 모드: 볼륨 기준 고정 위치에 프리뷰 배치
 			PreviewSpringArm->SetRelativeLocation(VolumeOffset + LocalSettings.StaticCameraOffset);
 			PreviewSpringArm->SetRelativeRotation(LocalSettings.StaticCameraRotation);
-			PreviewSpringArm->TargetArmLength = 0.f; // 위치가 곧 카메라 위치
+			PreviewSpringArm->TargetArmLength = 0.f;
+			PreviewSpringArm->SocketOffset = FVector::ZeroVector;
 		}
 		else
 		{
-			// Dynamic 모드: 기존 프리뷰 방식
 			PreviewSpringArm->SetRelativeLocation(VolumeOffset);
 			PreviewSpringArm->TargetArmLength = LocalSettings.TargetArmLength;
 			PreviewSpringArm->SetRelativeRotation(LocalSettings.Rotation);
 			PreviewSpringArm->SocketOffset = LocalSettings.CameraOffset;
 		}
 
-		// FOV/OrthoWidth
+		// 투영 모드별 프리뷰
 		if (LocalSettings.ProjectionType == ECameraProjectionType::Orthographic)
 		{
 			PreviewCamera->SetProjectionMode(ECameraProjectionMode::Orthographic);
-			PreviewCamera->SetOrthoWidth(LocalSettings.OrthoWidth);
+			PreviewCamera->SetOrthoWidth(LocalSettings.GetEffectiveOrthoWidth());
 		}
 		else
 		{
 			PreviewCamera->SetProjectionMode(ECameraProjectionMode::Perspective);
-			PreviewCamera->SetFieldOfView(LocalSettings.FieldOfView);
+			PreviewCamera->SetFieldOfView(LocalSettings.GetEffectiveFOV());
 		}
 
 		ApplyPreviewPostProcessing();
 	}
-
-#if WITH_EDITOR
-	DrawBoundsPreview();
-#endif
 }
 
 void AProjectHCameraVolume::ApplyPreviewPostProcessing()
@@ -187,7 +176,7 @@ void AProjectHCameraVolume::ApplyPreviewPostProcessing()
 }
 
 // ──────────────────────────────────────────────────
-// DA 동기화 (기존 워크플로우 보존)
+// DA 동기화
 // ──────────────────────────────────────────────────
 
 void AProjectHCameraVolume::LoadFromDataAsset()
@@ -209,25 +198,3 @@ void AProjectHCameraVolume::SaveToDataAsset()
 		UE_LOG(LogTemp, Warning, TEXT("[%s] 에 카메라 셋팅이 영구적으로 저장되었습니다!"), *LinkedDataAsset->GetName());
 	}
 }
-
-// ──────────────────────────────────────────────────
-// Editor: 바운드 시각화
-// ──────────────────────────────────────────────────
-
-#if WITH_EDITOR
-void AProjectHCameraVolume::DrawBoundsPreview() const
-{
-	if (!GetWorld() || !LocalSettings.bEnableBoundsBlocking) return;
-
-	const FVector Center = GetVolumeCenter();
-	const FVector Extent = CollisionBox->GetScaledBoxExtent();
-	const float Padding = LocalSettings.BoundsPadding;
-	const FVector PaddedExtent = Extent - FVector(Padding);
-
-	// 유효 카메라 영역을 노란색으로 표시
-	if (PaddedExtent.X > 0.f && PaddedExtent.Y > 0.f)
-	{
-		DrawDebugBox(GetWorld(), Center, PaddedExtent, GetActorQuat(), FColor::Yellow, false, 0.f, 0, 2.f);
-	}
-}
-#endif

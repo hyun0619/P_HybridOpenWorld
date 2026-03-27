@@ -6,7 +6,7 @@ void UProjectHCameraSubsystem::PushCameraPreset(const FCameraPresetSettings& Set
 {
 	if (!Instigator) return;
 
-	// 중복 방지: 같은 Instigator가 이미 스택에 있으면 갱신
+	// ★ 중복 방지: 같은 Instigator가 이미 있으면 갱신
 	for (FCameraStackEntry& Entry : CameraStack)
 	{
 		if (Entry.Instigator == Instigator)
@@ -38,6 +38,14 @@ void UProjectHCameraSubsystem::PopCameraPreset(AActor* Instigator)
 	{
 		if (CameraStack[i].Instigator == Instigator)
 		{
+			// ★ 퇴장 블렌드 오버라이드 저장
+			// ExitBlendTime >= 0 이면 다음 전환에 이 값을 사용
+			const float ExitBT = CameraStack[i].Settings.ExitBlendTime;
+			if (ExitBT >= 0.0f)
+			{
+				PendingExitBlendOverride = ExitBT;
+			}
+
 			CameraStack.RemoveAt(i);
 			break;
 		}
@@ -52,19 +60,16 @@ bool UProjectHCameraSubsystem::GetActivePreset(FCameraPresetSettings& OutSetting
 	{
 		AActor* ActiveInstigator = CameraStack.Last().Instigator;
 
-		// ★ 핵심: 볼륨 액터라면 실시간 LocalSettings를 가져온다
 		if (AProjectHCameraVolume* Volume = Cast<AProjectHCameraVolume>(ActiveInstigator))
 		{
 			OutSettings = Volume->GetCameraSettings();
 			return true;
 		}
 
-		// 볼륨이 아닌 다른 액터가 요청했다면 스택에 저장된 값
 		OutSettings = CameraStack.Last().Settings;
 		return true;
 	}
 
-	// 기본 카메라 DA
 	if (DefaultLevelDA)
 	{
 		OutSettings = DefaultLevelDA->Settings;
@@ -85,10 +90,6 @@ void UProjectHCameraSubsystem::SetDefaultPreset(UCameraPresetDataAsset* InDefaul
 	DefaultLevelDA = InDefaultDA;
 }
 
-// ──────────────────────────────────────────────────
-// 신규 API
-// ──────────────────────────────────────────────────
-
 AProjectHCameraVolume* UProjectHCameraSubsystem::GetActiveVolume() const
 {
 	AActor* Instigator = GetActiveInstigator();
@@ -98,8 +99,6 @@ AProjectHCameraVolume* UProjectHCameraSubsystem::GetActiveVolume() const
 void UProjectHCameraSubsystem::NotifyVolumeSettingsChanged(AProjectHCameraVolume* Volume)
 {
 	if (!Volume) return;
-
-	// 해당 볼륨이 현재 활성 상태인 경우, 스택의 Settings도 갱신
 	for (FCameraStackEntry& Entry : CameraStack)
 	{
 		if (Entry.Instigator == Volume)
@@ -108,8 +107,17 @@ void UProjectHCameraSubsystem::NotifyVolumeSettingsChanged(AProjectHCameraVolume
 			break;
 		}
 	}
-	// CameraActor가 매 Tick마다 GetActivePreset을 호출하므로
-	// 여기서 별도 알림 없이도 다음 프레임에 자동 반영됨
+}
+
+bool UProjectHCameraSubsystem::ConsumeExitBlendOverride(float& OutBlendTime)
+{
+	if (PendingExitBlendOverride >= 0.0f)
+	{
+		OutBlendTime = PendingExitBlendOverride;
+		PendingExitBlendOverride = -1.0f; // 한 번 읽으면 리셋
+		return true;
+	}
+	return false;
 }
 
 void UProjectHCameraSubsystem::CheckAndBroadcastVolumeChange()

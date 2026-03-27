@@ -53,8 +53,24 @@ void AHybridOpenWorldCharacter::HandleMove_KeyBoard(const FInputActionValue& Val
 	{
 		if (AProjectHCameraActor* MainCamera = PC->GetMainCameraActor()) // 카메라가 보고 있는 방향을 기준으로 이동
 		{
+			// ══════════════════════════════════════════════════════
+			// ★ 핵심 버그 수정
+			//
+			// [이전 코드 - 버그]
+			//   MainCamera->GetActorRotation().Yaw
+			//   → CameraActor의 루트 컴포넌트 회전을 읽음
+			//   → 볼륨 전환 시 SpringArm이 별도로 보간하면서
+			//     "화면에 보이는 방향"과 "이동 기준 방향"이 어긋남
+			//
+			// [수정 코드]
+			//   MainCamera->GetCameraViewRotation().Yaw
+			//   → SpringArm의 월드 회전을 읽음
+			//   → 화면에 실제로 보이는 카메라 방향 = 이동 기준 방향
+			//   → 어떤 볼륨에 있든 WASD가 화면 기준 상하좌우로 작동
+			// ══════════════════════════════════════════════════════
+			
 			// 카메라 회전값 중 Yaw만 추출하여 방향 계산
-			const FRotator YawRotation(0, MainCamera->GetActorRotation().Yaw, 0);
+			const FRotator YawRotation(0, MainCamera->GetCameraViewRotation().Yaw, 0);
 			const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
 			const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 
