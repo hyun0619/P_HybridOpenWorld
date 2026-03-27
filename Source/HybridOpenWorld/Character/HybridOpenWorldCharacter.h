@@ -38,6 +38,9 @@ private:
 	void HandleMove_KeyBoard(const FInputActionValue& Value);
 	void HandleMove_MouseClick();
 	
+	// ★ [추가] 키보드에서 손을 뗐을 때 방향 고정을 풀어줄 함수
+	void ResetMoveLatch(const FInputActionValue& Value);
+	
 	// 매 프레임 Cast X -> 플레이어 컨트롤러 캐싱해둘 약참조 포인터
 	UPROPERTY()
 	TWeakObjectPtr<AProjectHPlayerController> CachedPC;

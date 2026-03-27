@@ -146,8 +146,6 @@ void AProjectHCameraActor::Tick(float DeltaTime)
 		if (ActiveInstigator)
 			TargetRot = ActiveInstigator->GetActorTransform().TransformRotation(Preset.Rotation.Quaternion()).Rotator();
 	}
-	if (Preset.bUsePawnControlRotation && PlayerPawn && PlayerPawn->GetController())
-		TargetRot = PlayerPawn->GetControlRotation();
 
 	// ─── 래그/투영 ──────────────────────────
 
