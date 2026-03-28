@@ -4,7 +4,6 @@
 #include "Blueprint/AIBlueprintHelperLibrary.h"
 #include "Camera/ProjectHCameraActor.h"
 #include "Camera/ProjectHLookAroundComponent.h"
-#include "Camera/ProjectHOcclusionFadeComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Data/LevelSettingsData.h"
 #include "Data/GameMasterAsset.h"
@@ -23,7 +22,6 @@ AProjectHPlayerController::AProjectHPlayerController()
 	
 	InputManager = CreateDefaultSubobject<UProjectHInputComponent>(TEXT("InputManager"));
 	EdgeScrollComponent = CreateDefaultSubobject<UProjectHLookAroundComponent>(TEXT("EdgeScrollComponent"));
-	OcclusionFadeComponent = CreateDefaultSubobject<UProjectHOcclusionFadeComponent>(TEXT("OcclusionFadeComponent"));
 }
 
 void AProjectHPlayerController::BeginPlay()

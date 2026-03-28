@@ -13,7 +13,6 @@ class UInputMappingContext;
 class UGameMasterAsset;
 class UProjectHInputComponent;
 class UProjectHLookAroundComponent;
-class UProjectHOcclusionFadeComponent;
 
 UCLASS()
 class HYBRIDOPENWORLD_API AProjectHPlayerController : public APlayerController
@@ -41,8 +40,6 @@ protected:
     UProjectHInputComponent* InputManager;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
     UProjectHLookAroundComponent* EdgeScrollComponent;
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
-    UProjectHOcclusionFadeComponent* OcclusionFadeComponent;
     
     EInputState DefaultState;
     EInputState CurrentState;

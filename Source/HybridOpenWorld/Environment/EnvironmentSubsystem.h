@@ -4,6 +4,9 @@
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "EnvironmentSubsystem.generated.h"
 
+
+class UEnvPresetDataAsset;
+class UProjectHGameInstance;
 class UEnvPresetDataAsset;
 /**
  * 시간의 흐름과 날씨 변화 계산하는 환경 관리 서브시스템
@@ -42,4 +45,8 @@ private:
 	
 	UPROPERTY()
 	float CurrentTime; // 흐르는 시간을 저장하는 변수 (현재 시간)
+	
+	/** ★ 매 타이머마다 Cast하지 않도록 캐싱 */
+	UPROPERTY()
+	UProjectHGameInstance* CachedGameInstance = nullptr;
 };
