@@ -30,6 +30,7 @@ public:
 	void ApplyInputState(APlayerController* PC, EInputState NewState); // 컨트롤러가 상태 바꿀 때 호출하는 함수
 
 protected:
+	/* IMC 설정 */
 	UPROPERTY(EditDefaultsOnly, Category="Input|Context", meta=(ToolTip = "항상 켜있는 기능 (인벤토리, 지도 등)"))
 	UInputMappingContext* IMC_Global; // 항상 켜있는 기능 (인벤토리, 지도 등)
 	UPROPERTY(EditDefaultsOnly, Category="Input|Context", meta=(ToolTip = "월드맵 전용 - 마우스 이동"))
