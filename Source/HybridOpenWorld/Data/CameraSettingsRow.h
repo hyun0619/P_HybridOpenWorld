@@ -17,8 +17,7 @@ struct FCameraSettingsRow : public FTableRowBase
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Camera", meta=(ShowOnlyInnerProperties))
 	FCameraPresetSettings Settings;
-
-	/** 설명 메모 (에디터 전용) */
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Camera", meta=(DisplayName="기획 메모"))
 	FString DesignerNote;
 };
