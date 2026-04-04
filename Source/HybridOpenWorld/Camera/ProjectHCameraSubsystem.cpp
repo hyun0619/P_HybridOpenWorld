@@ -39,17 +39,16 @@ void UProjectHCameraSubsystem::PopCameraPreset(AActor* Instigator)
 
 	for (int32 i = 0; i < CameraStack.Num(); ++i)
 	{
-		if (CameraStack[i].Instigator == Instigator)
-		{
-			// 볼륨을 나가는 순간의 부드러운 전환 시간 저장
-			const float ExitBT = CameraStack[i].Settings.ExitBlendTime;
-			if (ExitBT >= 0.0f)
-			{
-				PendingExitBlendOverride = ExitBT;
-			}
-			CameraStack.RemoveAt(i);
+		if (CameraStack[i].Instigator != Instigator)
 			break;
+		
+		// 볼륨을 나가는 순간의 부드러운 전환 시간 저장
+		const float ExitBT = CameraStack[i].Settings.ExitBlendTime;
+		if (ExitBT >= 0.0f)
+		{
+			PendingExitBlendOverride = ExitBT;
 		}
+		CameraStack.RemoveAt(i);
 	}
 	CheckAndBroadcastVolumeChange(); // 제거 후 다시 상태 확인 - 다음 우선순위 볼륨으로 카메라 넘어감
 }
