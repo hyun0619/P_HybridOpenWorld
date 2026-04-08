@@ -67,27 +67,40 @@ bool UProjectHCameraSubsystem::GetActivePreset(FCameraPresetSettings& OutSetting
 		return true;
 	}
 	
-	AActor* ActiveInstigator = CameraStack.Last().Instigator;
-	// 볼륨 액터라면 최신 데이터 다시 가져옴 - 실시간 수정 반영
-	if (AProjectHCameraVolume* Volume = Cast<AProjectHCameraVolume>(ActiveInstigator))
+	// 가장 우선순위가 높고 유효한 액터를 스택 최상단부터 찾음
+	for (int32 i = CameraStack.Num() - 1; i >= 0; --i)
 	{
-		OutSettings = Volume->GetCameraSettings();
-		return true;
+		if (CameraStack[i].Instigator.IsValid())
+		{
+			AActor* ActiveInstigator = CameraStack[i].Instigator.Get();
+			if (AProjectHCameraVolume* Volume = Cast<AProjectHCameraVolume>(ActiveInstigator))
+			{
+				OutSettings = Volume->GetCameraSettings();
+				return true;
+			}
+			OutSettings = CameraStack[i].Settings;
+			return true;
+		}
 	}
-	
-	OutSettings = CameraStack.Last().Settings;
+    
+	// 모든 스택 데이터가 유효하지 않으면 기본값 반환
+	if (DefaultLevelDA == nullptr) return false;
+	OutSettings = DefaultLevelDA->Settings;
 	return true;
 }
 
 /* 현재 활성화된 제어 주체 반환 */
 AActor* UProjectHCameraSubsystem::GetActiveInstigator() const
 {
-	if (CameraStack.IsEmpty())
+	// 유효한 제어 주체만 반환
+	for (int32 i = CameraStack.Num() - 1; i >= 0; --i)
 	{
-		return nullptr;
+		if (CameraStack[i].Instigator.IsValid())
+		{
+			return CameraStack[i].Instigator.Get();
+		}
 	}
-	
-	return CameraStack.Last().Instigator;
+	return nullptr;
 }
 
 /* 레벨 기본 설정값 지정 */
@@ -133,6 +146,9 @@ bool UProjectHCameraSubsystem::ConsumeExitBlendOverride(float& OutBlendTime)
 /* 볼륨이 교체되었는지 확인, 이벤트 발생 */
 void UProjectHCameraSubsystem::CheckAndBroadcastVolumeChange()
 {
+	// 상태 검사 시점 - 게임에서 파괴되어 무효화된 약참조 포인터들을 스택에서 청소
+	CameraStack.RemoveAll([](const FCameraStackEntry& Entry) { return !Entry.Instigator.IsValid(); });
+	
 	AProjectHCameraVolume* CurrentVolume = GetActiveVolume();
 	AProjectHCameraVolume* PrevVolume = CachedActiveVolume.Get();
 

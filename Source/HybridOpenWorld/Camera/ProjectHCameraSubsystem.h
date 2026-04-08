@@ -19,8 +19,8 @@ struct FCameraStackEntry
 	FCameraPresetSettings Settings; // 카메라 상세 설정값
 	UPROPERTY()
 	int32 Priority = 0; // 우선순위
-	UPROPERTY()
-	AActor* Instigator = nullptr; // 이 설정을 요청한 주체 - 보통 CameraVolume Actor
+
+	TWeakObjectPtr<AActor> Instigator = nullptr; // 이 설정을 요청한 주체 - 보통 CameraVolume Actor
 
 	bool operator<(const FCameraStackEntry& Other) const // 정렬을 위한 연산자 오버로딩 - Priority 기준
 	{
