@@ -35,6 +35,23 @@ void AProjectHCameraActor::BeginPlay()
 {
 	Super::BeginPlay();
 	CurrentOrthoWidth = MainCamera->OrthoWidth;
+	
+	// 서브시스템 델리게이트 구독
+	if (UProjectHCameraSubsystem* Subsystem = GetWorld()->GetSubsystem<UProjectHCameraSubsystem>())
+	{
+		Subsystem->OnActiveVolumeChanged.AddDynamic(this, &AProjectHCameraActor::OnVolumeChanged);
+	}
+}
+
+void AProjectHCameraActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	// 안전한 메모리 관리를 위한 구독 해제
+	if (UProjectHCameraSubsystem* Subsystem = GetWorld()->GetSubsystem<UProjectHCameraSubsystem>())
+	{
+		Subsystem->OnActiveVolumeChanged.RemoveDynamic(this, &AProjectHCameraActor::OnVolumeChanged);
+	}
+	
+	Super::EndPlay(EndPlayReason);
 }
 
 /* 현재 카메라가 최종적으로 보고 있는 회전값 반환 */
@@ -113,20 +130,20 @@ void AProjectHCameraActor::Tick(float DeltaTime)
 	AActor* ActiveInstigator = Subsystem->GetActiveInstigator();
 	AProjectHCameraVolume* ActiveVolume = Cast<AProjectHCameraVolume>(ActiveInstigator);
 
-	// 볼륨 변경 감지, 블렌드 타임 결정
-	bool bVolumeChanged = (LastVolume != ActiveInstigator);
-	LastVolume = ActiveInstigator;
-
 	float EffectiveBlendTime = Preset.BlendTime;
-	if (bVolumeChanged)
+	// 델리게이트를 통해 볼륨 변경이 감지된 프레임
+	if (bVolumeChangedThisFrame)
 	{
 		float ExitOverride;
-		if (Subsystem->ConsumeExitBlendOverride(ExitOverride)) // 볼륨을 나갈 때의 전용 블렌드 타임이 있다면 적용
+		if (Subsystem->ConsumeExitBlendOverride(ExitOverride))
+		{
 			EffectiveBlendTime = ExitOverride;
+		}
+		bVolumeChangedThisFrame = false;
 	}
 
 	// 순간이동 여부 판단 - 블렌드 타임 0일 때
-	bool bHardCut = bIsFirstTick || (bVolumeChanged && EffectiveBlendTime <= 0.0f);
+	bool bHardCut = bIsFirstTick || (EffectiveBlendTime <= 0.0f);
 	bIsFirstTick = false;
 
 	APlayerController* PC = GetWorld()->GetFirstPlayerController();
@@ -146,13 +163,22 @@ void AProjectHCameraActor::Tick(float DeltaTime)
 	else
 	{
 		// 블렌드 타임이 길수록 이동 속도 느려짐
-		const float CamSpeed = EffectiveBlendTime > 0.0f ? 5.0f / EffectiveBlendTime : 9999.0f;
+		const float CamSpeed = EffectiveBlendTime > 0.0f ? BASE_INTERP_SPEED_MULTIPLIER / EffectiveBlendTime : 9999.0f;
 		ApplySmooth(Preset, TargetLoc, TargetRot, TargetFOV, CamSpeed, DeltaTime);
 	}
 
 	// 포스트 프로세싱 최종 적용
 	UpdatePostProcessSettings(Preset.bEnableTiltShift, Preset.ManualFocusDistance, Preset.ApertureFStop,
 		Preset.SensorWidth, Preset.NearBlurRadius, Preset.FarBlurRadius, Preset.FarTransitionRegion);
+	
+	// 매 프레임 모든 처리가 끝난 후 오프셋 초기화
+	EdgeScrollOffset = FVector::ZeroVector;
+}
+
+void AProjectHCameraActor::OnVolumeChanged(AProjectHCameraVolume* NewVolume, AProjectHCameraVolume* PreviousVolume)
+{
+	// 볼륨이 변경되었다는 플래그 On
+	bVolumeChangedThisFrame = true;
 }
 
 /* 카메라 액터 자체가 이동해야 할 위치 계산 */
@@ -222,8 +248,6 @@ void AProjectHCameraActor::ApplyHardCut(const FCameraPresetSettings& Preset,
 	if (PC && PC->PlayerCameraManager)
 		PC->PlayerCameraManager->SetGameCameraCutThisFrame();
 	ApplyProjectionSettings(Preset, 0.f, true);
-	
-	EdgeScrollOffset = FVector::ZeroVector;
 }
 
 /* 목표값으로 부드럽게 이동 */
@@ -247,8 +271,6 @@ void AProjectHCameraActor::ApplySmooth(const FCameraPresetSettings& Preset,
 	SpringArm->SetWorldRotation(FMath::RInterpTo(SpringArm->GetComponentRotation(), TargetRot, DT, CamSpeed));
 	MainCamera->SetFieldOfView(FMath::FInterpTo(MainCamera->FieldOfView, TargetFOV, DT, CamSpeed));
 	ApplyProjectionSettings(Preset, DT, false);
-
-	EdgeScrollOffset = FVector::ZeroVector;
 }
 
 /* 래그 설정 동기화 */

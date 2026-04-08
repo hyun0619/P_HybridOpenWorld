@@ -36,8 +36,13 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void Tick(float DeltaSeconds) override;
 
+	/* 서브시스템의 볼륨 변경 델리게이트와 바인딩될 함수 */
+	UFUNCTION()
+	void OnVolumeChanged(AProjectHCameraVolume* NewVolume, AProjectHCameraVolume* PreviousVolume);
+	
 	/* 컴포넌트 구성 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Camera")
 	USpringArmComponent* SpringArm; // 카메라 거리 및 레그 제어
@@ -53,13 +58,15 @@ protected:
 	float CameraLagSpeed = 3.0f;
 
 private:
-	UPROPERTY()
-	AActor* LastVolume = nullptr; // 이젠 프레임의 볼륨 기억 -> 변경 여부 판단 
-	
 	bool bIsFirstTick = true; // 시작하자마자 카메라가 튀는 것을 방지하기 위한 플래그
 	float CurrentOrthoWidth = 2048.0f;
 	
+	bool bVolumeChangedThisFrame = false; // 서브시스템의 델리게이트를 통해 감지된 볼륨 변경 상태
+	
 	FVector EdgeScrollOffset = FVector::ZeroVector; // 룩어라운드에 의한 카메라 오픈셋
+	
+	// FInterpTo의 지수 감쇠 특성을 보정하기 위한 상수 - 목표값의 약 99%에 도달하는 데 걸리는 시간을 맞추기 위한 경험적 배수
+	static constexpr float BASE_INTERP_SPEED_MULTIPLIER = 5.0f;
 	
 	/* SRP 개선을 위한 헬퍼 함수 */
 	FVector ComputeTargetLocation(const FCameraPresetSettings& Preset,
