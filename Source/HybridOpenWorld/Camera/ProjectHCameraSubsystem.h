@@ -72,7 +72,7 @@ private:
 	UPROPERTY()
 	TWeakObjectPtr<AProjectHCameraVolume> CachedActiveVolume; // 이전 볼륨 기억 -> 변경 사항 감지 변수
 	
-	float PendingExitBlendOverride = -1.0f; // 볼륨 나갈 때 적용할 임시 블렌드 시간
+	TArray<float> ExitBlendQueue; // 볼륨 나갈 때 적용할 임시 블렌드 시간
 
 	void CheckAndBroadcastVolumeChange(); // 전체 활성 볼륨 바뀌었는지 체크 -> 이벤트 방송하는 함수
 };
