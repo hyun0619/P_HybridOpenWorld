@@ -13,7 +13,7 @@ AProjectHCameraVolume::AProjectHCameraVolume()
 	
 	CollisionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("CollisionBox"));
 	CollisionBox->SetupAttachment(RootComponent);
-	CollisionBox->SetBoxExtent(FVector(500.f, 500.f, 200.f));
+	CollisionBox->SetBoxExtent(VolumeExtent);
 	CollisionBox->SetCollisionProfileName(TEXT("Trigger"));
 	CollisionBox->SetCanEverAffectNavigation(false);
 	

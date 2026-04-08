@@ -19,8 +19,8 @@ struct FCameraStackEntry
 	FCameraPresetSettings Settings; // 카메라 상세 설정값
 	UPROPERTY()
 	int32 Priority = 0; // 우선순위
-	UPROPERTY()
-	AActor* Instigator = nullptr; // 이 설정을 요청한 주체 - 보통 CameraVolume Actor
+
+	TWeakObjectPtr<AActor> Instigator = nullptr; // 이 설정을 요청한 주체 - 보통 CameraVolume Actor
 
 	bool operator<(const FCameraStackEntry& Other) const // 정렬을 위한 연산자 오버로딩 - Priority 기준
 	{
@@ -72,7 +72,7 @@ private:
 	UPROPERTY()
 	TWeakObjectPtr<AProjectHCameraVolume> CachedActiveVolume; // 이전 볼륨 기억 -> 변경 사항 감지 변수
 	
-	float PendingExitBlendOverride = -1.0f; // 볼륨 나갈 때 적용할 임시 블렌드 시간
+	TArray<float> ExitBlendQueue; // 볼륨 나갈 때 적용할 임시 블렌드 시간
 
 	void CheckAndBroadcastVolumeChange(); // 전체 활성 볼륨 바뀌었는지 체크 -> 이벤트 방송하는 함수
 };

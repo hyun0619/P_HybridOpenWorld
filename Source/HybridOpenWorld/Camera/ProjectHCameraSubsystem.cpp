@@ -13,6 +13,7 @@ void UProjectHCameraSubsystem::PushCameraPreset(const FCameraPresetSettings& Set
 		{
 			Entry.Settings = Settings;
 			Entry.Priority = Priority;
+			
 			CameraStack.Sort();
 			CheckAndBroadcastVolumeChange();
 			return;
@@ -39,16 +40,17 @@ void UProjectHCameraSubsystem::PopCameraPreset(AActor* Instigator)
 
 	for (int32 i = 0; i < CameraStack.Num(); ++i)
 	{
-		if (CameraStack[i].Instigator != Instigator)
-			break;
-		
-		// 볼륨을 나가는 순간의 부드러운 전환 시간 저장
-		const float ExitBT = CameraStack[i].Settings.ExitBlendTime;
-		if (ExitBT >= 0.0f)
+		if (CameraStack[i].Instigator == Instigator)
 		{
-			PendingExitBlendOverride = ExitBT;
+			// 볼륨을 나가는 순간의 부드러운 전환 시간 저장
+			const float ExitBT = CameraStack[i].Settings.ExitBlendTime;
+			if (ExitBT >= 0.0f)
+			{
+				ExitBlendQueue.Add(ExitBT);
+			}
+			CameraStack.RemoveAt(i);
+			break;	
 		}
-		CameraStack.RemoveAt(i);
 	}
 	CheckAndBroadcastVolumeChange(); // 제거 후 다시 상태 확인 - 다음 우선순위 볼륨으로 카메라 넘어감
 }
@@ -56,32 +58,48 @@ void UProjectHCameraSubsystem::PopCameraPreset(AActor* Instigator)
 /* 최종적으로 적용되어야 할 카메라 프리셋 결정 */
 bool UProjectHCameraSubsystem::GetActivePreset(FCameraPresetSettings& OutSettings) const
 {
-	if (CameraStack.Num() > 0) // 스택에 볼륨 O -> 우선순위 가장 높은 항목 반환
+	if (CameraStack.IsEmpty())
 	{
-		AActor* ActiveInstigator = CameraStack.Last().Instigator;
+		if (DefaultLevelDA == nullptr)
+			return false;
 
-		// 볼륨 액터라면 최신 데이터 다시 가져옴 - 실시간 수정 반영
-		if (AProjectHCameraVolume* Volume = Cast<AProjectHCameraVolume>(ActiveInstigator))
-		{
-			OutSettings = Volume->GetCameraSettings();
-			return true;
-		} //aaaa
-		OutSettings = CameraStack.Last().Settings;
-		return true;
-	}
-
-	if (DefaultLevelDA) // 스택이 비어있다면 레벨 기본값 반환
-	{
 		OutSettings = DefaultLevelDA->Settings;
 		return true;
 	}
-	return false;
+	
+	// 가장 우선순위가 높고 유효한 액터를 스택 최상단부터 찾음
+	for (int32 i = CameraStack.Num() - 1; i >= 0; --i)
+	{
+		if (CameraStack[i].Instigator.IsValid())
+		{
+			AActor* ActiveInstigator = CameraStack[i].Instigator.Get();
+			if (AProjectHCameraVolume* Volume = Cast<AProjectHCameraVolume>(ActiveInstigator))
+			{
+				OutSettings = Volume->GetCameraSettings();
+				return true;
+			}
+			OutSettings = CameraStack[i].Settings;
+			return true;
+		}
+	}
+    
+	// 모든 스택 데이터가 유효하지 않으면 기본값 반환
+	if (DefaultLevelDA == nullptr) return false;
+	OutSettings = DefaultLevelDA->Settings;
+	return true;
 }
 
 /* 현재 활성화된 제어 주체 반환 */
 AActor* UProjectHCameraSubsystem::GetActiveInstigator() const
 {
-	if (CameraStack.Num() > 0) return CameraStack.Last().Instigator;
+	// 유효한 제어 주체만 반환
+	for (int32 i = CameraStack.Num() - 1; i >= 0; --i)
+	{
+		if (CameraStack[i].Instigator.IsValid())
+		{
+			return CameraStack[i].Instigator.Get();
+		}
+	}
 	return nullptr;
 }
 
@@ -95,7 +113,7 @@ void UProjectHCameraSubsystem::SetDefaultPreset(UCameraPresetDataAsset* InDefaul
 AProjectHCameraVolume* UProjectHCameraSubsystem::GetActiveVolume() const
 {
 	AActor* Instigator = GetActiveInstigator();
-	return Instigator ? Cast<AProjectHCameraVolume>(Instigator) : nullptr;
+	return Cast<AProjectHCameraVolume>(Instigator);
 }
 
 /* 볼륨 내 수치가 에디터나 런타임에서 변경되었을 때 스택 데이터 동기화 */
@@ -115,10 +133,11 @@ void UProjectHCameraSubsystem::NotifyVolumeSettingsChanged(AProjectHCameraVolume
 /* 퇴장 블렌드 시간 소비 - 한번 읽으면 초기화되는 데이터 */
 bool UProjectHCameraSubsystem::ConsumeExitBlendOverride(float& OutBlendTime)
 {
-	if (PendingExitBlendOverride >= 0.0f)
+	if (!ExitBlendQueue.IsEmpty())
 	{
-		OutBlendTime = PendingExitBlendOverride;
-		PendingExitBlendOverride = -1.0f; // 한 번 읽으면 리셋
+		// 가장 먼저 들어온 데이터 추출 - FIFO
+		OutBlendTime = ExitBlendQueue[0];
+		ExitBlendQueue.RemoveAt(0); // 첫 번째 요소 삭제
 		return true;
 	}
 	return false;
@@ -127,6 +146,9 @@ bool UProjectHCameraSubsystem::ConsumeExitBlendOverride(float& OutBlendTime)
 /* 볼륨이 교체되었는지 확인, 이벤트 발생 */
 void UProjectHCameraSubsystem::CheckAndBroadcastVolumeChange()
 {
+	// 상태 검사 시점 - 게임에서 파괴되어 무효화된 약참조 포인터들을 스택에서 청소
+	CameraStack.RemoveAll([](const FCameraStackEntry& Entry) { return !Entry.Instigator.IsValid(); });
+	
 	AProjectHCameraVolume* CurrentVolume = GetActiveVolume();
 	AProjectHCameraVolume* PrevVolume = CachedActiveVolume.Get();
 
