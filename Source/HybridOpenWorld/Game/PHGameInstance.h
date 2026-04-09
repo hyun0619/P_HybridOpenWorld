@@ -3,7 +3,7 @@
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
 #include "GameplayTagContainer.h"
-#include "ProjectHGameInstance.generated.h"
+#include "PHGameInstance.generated.h"
 
 /**
  * 게임 종료 전까지 유지되어야 하는 핵심 데이터들
@@ -30,7 +30,7 @@ struct FPlayerPersistenceData
  * 프로젝트 전체의 전역 데이터와 서브시스템을 관리하는 클래스
  */
 UCLASS()
-class HYBRIDOPENWORLD_API UProjectHGameInstance : public UGameInstance
+class HYBRIDOPENWORLD_API UPHGameInstance : public UGameInstance
 {
 	GENERATED_BODY()
 	

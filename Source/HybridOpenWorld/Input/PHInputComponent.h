@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "ProjectHInputComponent.generated.h"
+#include "PHInputComponent.generated.h"
 
 
 class UInputMappingContext;
@@ -21,12 +21,12 @@ enum class EInputState : uint8
 };
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
-class HYBRIDOPENWORLD_API UProjectHInputComponent : public UActorComponent
+class HYBRIDOPENWORLD_API UPHInputComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
 public:	
-	UProjectHInputComponent();
+	UPHInputComponent();
 	void ApplyInputState(APlayerController* PC, EInputState NewState); // 컨트롤러가 상태 바꿀 때 호출하는 함수
 
 protected:

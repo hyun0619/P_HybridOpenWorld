@@ -3,23 +3,23 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Data/CameraPresetDataAsset.h"
-#include "ProjectHCameraActor.generated.h"
+#include "PHCameraActor.generated.h"
 
 class UCameraComponent;
 class USpringArmComponent;
 class UWorldPartitionStreamingSourceComponent;
-class AProjectHCameraVolume;
+class APHCameraVolume;
 
 /*
  * 게임 내 실제 메인 카메라 역할, 서브시스템의 신호 -> 셋팅 보간 처리
  */
 UCLASS()
-class HYBRIDOPENWORLD_API AProjectHCameraActor : public AActor
+class HYBRIDOPENWORLD_API APHCameraActor : public AActor
 {
 	GENERATED_BODY()
 
 public:
-	AProjectHCameraActor();
+	APHCameraActor();
 	
 	void UpdateCameraSettings(float TargetArmLength, float FOV, FRotator Rotation); // 외부에서 직접 카메라 수치 제어
 	void UpdatePostProcessSettings(bool bEnable, float InFocalDist, float InFStop, float InSensorWidth,
@@ -41,7 +41,7 @@ protected:
 
 	/* 서브시스템의 볼륨 변경 델리게이트와 바인딩될 함수 */
 	UFUNCTION()
-	void OnVolumeChanged(AProjectHCameraVolume* NewVolume, AProjectHCameraVolume* PreviousVolume);
+	void OnVolumeChanged(APHCameraVolume* NewVolume, APHCameraVolume* PreviousVolume);
 	
 	/* 컴포넌트 구성 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Camera")
@@ -70,9 +70,9 @@ private:
 	
 	/* SRP 개선을 위한 헬퍼 함수 */
 	FVector ComputeTargetLocation(const FCameraPresetSettings& Preset,
-		AActor* ActiveInstigator, AProjectHCameraVolume* ActiveVolume, APawn* PlayerPawn) const; // 목표 위치 계산
+		AActor* ActiveInstigator, APHCameraVolume* ActiveVolume, APawn* PlayerPawn) const; // 목표 위치 계산
 	FRotator ComputeTargetRotation(const FCameraPresetSettings& Preset,
-		AActor* ActiveInstigator, AProjectHCameraVolume* ActiveVolume) const; // 목표 회전값 계산
+		AActor* ActiveInstigator, APHCameraVolume* ActiveVolume) const; // 목표 회전값 계산
 	void ApplyHardCut(const FCameraPresetSettings& Preset,
 		const FVector& TargetLoc, const FRotator& TargetRot, float TargetFOV, APlayerController* PC); // 순간 이동 적용
 	void ApplySmooth(const FCameraPresetSettings& Preset, const FVector& TargetLoc,

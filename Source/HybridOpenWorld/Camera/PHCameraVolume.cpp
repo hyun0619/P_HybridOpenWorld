@@ -1,11 +1,11 @@
-﻿#include "ProjectHCameraVolume.h"
+﻿#include "PHCameraVolume.h"
 #include "Components/BoxComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
-#include "ProjectHCameraSubsystem.h"
+#include "PHCameraSubsystem.h"
 #include "GameFramework/Pawn.h"
 
-AProjectHCameraVolume::AProjectHCameraVolume()
+APHCameraVolume::APHCameraVolume()
 {
 	PrimaryActorTick.bCanEverTick = false;
 	
@@ -35,29 +35,29 @@ AProjectHCameraVolume::AProjectHCameraVolume()
 	PreviewCamera->bHiddenInGame = true;
 
 	// 델리게이트 연결 - 충돌 이벤트 발생
-	CollisionBox->OnComponentBeginOverlap.AddDynamic(this, &AProjectHCameraVolume::OnOverlapBegin);
-	CollisionBox->OnComponentEndOverlap.AddDynamic(this, &AProjectHCameraVolume::OnOverlapEnd);
+	CollisionBox->OnComponentBeginOverlap.AddDynamic(this, &APHCameraVolume::OnOverlapBegin);
+	CollisionBox->OnComponentEndOverlap.AddDynamic(this, &APHCameraVolume::OnOverlapEnd);
 }
 
-void AProjectHCameraVolume::BeginPlay()
+void APHCameraVolume::BeginPlay()
 {
 	Super::BeginPlay();
 }
 
 /* 유틸리티 함수 - 볼륨 정보 반환 */
-FVector AProjectHCameraVolume::GetVolumeCenter() const { return GetActorLocation(); }
-FVector AProjectHCameraVolume::GetVolumeExtent() const { return CollisionBox->GetScaledBoxExtent(); }
+FVector APHCameraVolume::GetVolumeCenter() const { return GetActorLocation(); }
+FVector APHCameraVolume::GetVolumeExtent() const { return CollisionBox->GetScaledBoxExtent(); }
 
 /* 런타임 설정 업데이트 - 설정 바뀌면 서브시스템에 알려 즉시 반영 */
-void AProjectHCameraVolume::UpdateSettingsAtRuntime(const FCameraPresetSettings& NewSettings)
+void APHCameraVolume::UpdateSettingsAtRuntime(const FCameraPresetSettings& NewSettings)
 {
 	LocalSettings = NewSettings;
-	if (auto* Sub = GetWorld()->GetSubsystem<UProjectHCameraSubsystem>())
+	if (auto* Sub = GetWorld()->GetSubsystem<UPHCameraSubsystem>())
 		Sub->NotifyVolumeSettingsChanged(this);
 }
 
 /* 플레이어가 볼륨 진입 시 */
-void AProjectHCameraVolume::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
+void APHCameraVolume::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	// 제어 중인 플레이어 폰인지 확인
@@ -66,7 +66,7 @@ void AProjectHCameraVolume::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, 
 		if (P->IsPlayerControlled())
 		{
 			// 서브시스템의 스택에 현재 카메라 설정 푸쉬
-			if (auto* Sub = GetWorld()->GetSubsystem<UProjectHCameraSubsystem>())
+			if (auto* Sub = GetWorld()->GetSubsystem<UPHCameraSubsystem>())
 			{
 				Sub->PushCameraPreset(LocalSettings, Priority, this);
 			}
@@ -75,7 +75,7 @@ void AProjectHCameraVolume::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, 
 }
 
 /* 플레이어가 볼륨 나갔을 때 */
-void AProjectHCameraVolume::OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
+void APHCameraVolume::OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
 	if (APawn* P = Cast<APawn>(OtherActor))
@@ -83,7 +83,7 @@ void AProjectHCameraVolume::OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AA
 		if (P->IsPlayerControlled())
 		{
 			// 서브시스템 스택에서 현재 볼륨 설정 제거
-			if (auto* Sub = GetWorld()->GetSubsystem<UProjectHCameraSubsystem>())
+			if (auto* Sub = GetWorld()->GetSubsystem<UPHCameraSubsystem>())
 			{
 				Sub->PopCameraPreset(this);
 			}
@@ -92,7 +92,7 @@ void AProjectHCameraVolume::OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AA
 }
 
 /* 에디터 프로퍼티 변경 시 프리뷰 로직 */
-void AProjectHCameraVolume::OnConstruction(const FTransform& Transform)
+void APHCameraVolume::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
 	
@@ -132,13 +132,13 @@ void AProjectHCameraVolume::OnConstruction(const FTransform& Transform)
 }
 
 
-FCameraPresetSettings AProjectHCameraVolume::GetCameraSettings() const
+FCameraPresetSettings APHCameraVolume::GetCameraSettings() const
 {
 	return LocalSettings;
 }
 
 /* 포스트 프로세싱 효과 적용 - 틸트 쉬프트 */
-void AProjectHCameraVolume::ApplyPreviewPostProcessing()
+void APHCameraVolume::ApplyPreviewPostProcessing()
 {
 	if (!PreviewCamera) return;
 	
@@ -166,7 +166,7 @@ void AProjectHCameraVolume::ApplyPreviewPostProcessing()
 
 
 /* 에셋 관리 - 값 불러오기 */
-void AProjectHCameraVolume::LoadFromDataAsset()
+void APHCameraVolume::LoadFromDataAsset()
 {
 	if (LinkedDataAsset)
 	{
@@ -176,7 +176,7 @@ void AProjectHCameraVolume::LoadFromDataAsset()
 }
 
 /* 에셋 관리 - 값 저장하기 */
-void AProjectHCameraVolume::SaveToDataAsset()
+void APHCameraVolume::SaveToDataAsset()
 {
 	if (LinkedDataAsset)
 	{

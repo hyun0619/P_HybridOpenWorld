@@ -1,17 +1,17 @@
-﻿#include "ProjectHPortal.h"
+﻿#include "PHPortal.h"
 #include "Components/BoxComponent.h"
 #include "Kismet/GameplayStatics.h"
-#include "Game/ProjectHGameInstance.h"
+#include "Game/PHGameInstance.h"
 
 
-AProjectHPortal::AProjectHPortal()
+APHPortal::APHPortal()
 {
 	CollisionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("CollisionBox"));
 	RootComponent = CollisionBox;
-	CollisionBox->OnComponentBeginOverlap.AddDynamic(this, &AProjectHPortal::OnOverlapBegin);
+	CollisionBox->OnComponentBeginOverlap.AddDynamic(this, &APHPortal::OnOverlapBegin);
 }
 
-void AProjectHPortal::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
+void APHPortal::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	// ★ IsA(APawn) 대신 Cast + IsPlayerControlled 체크
@@ -19,7 +19,7 @@ void AProjectHPortal::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor
 	APawn* Pawn = Cast<APawn>(OtherActor);
 	if (!Pawn || !Pawn->IsPlayerControlled()) return;
  
-	UProjectHGameInstance* GI = Cast<UProjectHGameInstance>(UGameplayStatics::GetGameInstance(GetWorld()));
+	UPHGameInstance* GI = Cast<UPHGameInstance>(UGameplayStatics::GetGameInstance(GetWorld()));
 	if (!GI || TargetLevel.IsNull()) return;
  
 	GI->PendingSpawnTag = TargetSpawnTag;

@@ -3,7 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "GameplayTagContainer.h"
-#include "ProjectHPortal.generated.h"
+#include "PHPortal.generated.h"
 
 
 class UBoxComponent;
@@ -11,12 +11,12 @@ class UBoxComponent;
  * 특정 레벨의 특정 태그로 이동시켜주는 포탈 액터
  */
 UCLASS()
-class HYBRIDOPENWORLD_API AProjectHPortal : public AActor
+class HYBRIDOPENWORLD_API APHPortal : public AActor
 {
 	GENERATED_BODY()
 
 public:
-	AProjectHPortal();
+	APHPortal();
 
 protected:
 	UPROPERTY(VisibleAnywhere, Category="Portal")

@@ -1,13 +1,13 @@
-﻿#include "ProjectHCameraActor.h"
+﻿#include "PHCameraActor.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Components/WorldPartitionStreamingSourceComponent.h"
-#include "ProjectHCameraSubsystem.h"
-#include "ProjectHCameraVolume.h"
+#include "PHCameraSubsystem.h"
+#include "PHCameraVolume.h"
 #include "Data/CameraPresetDataAsset.h"
 #include "GameFramework/PlayerController.h"
 
-AProjectHCameraActor::AProjectHCameraActor()
+APHCameraActor::APHCameraActor()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	
@@ -31,47 +31,47 @@ AProjectHCameraActor::AProjectHCameraActor()
 	SpringArm->CameraLagMaxDistance = 1000.0f;
 }
 
-void AProjectHCameraActor::BeginPlay()
+void APHCameraActor::BeginPlay()
 {
 	Super::BeginPlay();
 	CurrentOrthoWidth = MainCamera->OrthoWidth;
 	
 	// 서브시스템 델리게이트 구독
-	if (UProjectHCameraSubsystem* Subsystem = GetWorld()->GetSubsystem<UProjectHCameraSubsystem>())
+	if (UPHCameraSubsystem* Subsystem = GetWorld()->GetSubsystem<UPHCameraSubsystem>())
 	{
-		Subsystem->OnActiveVolumeChanged.AddDynamic(this, &AProjectHCameraActor::OnVolumeChanged);
+		Subsystem->OnActiveVolumeChanged.AddDynamic(this, &APHCameraActor::OnVolumeChanged);
 	}
 }
 
-void AProjectHCameraActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
+void APHCameraActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	// 안전한 메모리 관리를 위한 구독 해제
-	if (UProjectHCameraSubsystem* Subsystem = GetWorld()->GetSubsystem<UProjectHCameraSubsystem>())
+	if (UPHCameraSubsystem* Subsystem = GetWorld()->GetSubsystem<UPHCameraSubsystem>())
 	{
-		Subsystem->OnActiveVolumeChanged.RemoveDynamic(this, &AProjectHCameraActor::OnVolumeChanged);
+		Subsystem->OnActiveVolumeChanged.RemoveDynamic(this, &APHCameraActor::OnVolumeChanged);
 	}
 	
 	Super::EndPlay(EndPlayReason);
 }
 
 /* 현재 카메라가 최종적으로 보고 있는 회전값 반환 */
-FRotator AProjectHCameraActor::GetCameraViewRotation() const
+FRotator APHCameraActor::GetCameraViewRotation() const
 {
 	return SpringArm ? SpringArm->GetComponentRotation() : GetActorRotation();
 }
 
-UCameraComponent* AProjectHCameraActor::GetMainCamera() const
+UCameraComponent* APHCameraActor::GetMainCamera() const
 {
 	return MainCamera;
 }
 
-void AProjectHCameraActor::SetEdgeScrollOffset(const FVector& Offset)
+void APHCameraActor::SetEdgeScrollOffset(const FVector& Offset)
 {
 	EdgeScrollOffset = Offset;
 }
 
 /* 수동 카메라 설정 업데이트 */
-void AProjectHCameraActor::UpdateCameraSettings(float InArmLength, float FOV, FRotator Rot)
+void APHCameraActor::UpdateCameraSettings(float InArmLength, float FOV, FRotator Rot)
 {
 	if (SpringArm && MainCamera)
 	{
@@ -82,7 +82,7 @@ void AProjectHCameraActor::UpdateCameraSettings(float InArmLength, float FOV, FR
 }
 
 /* 포스트 프로세스 오버라이드 설정 로직 */
-void AProjectHCameraActor::UpdatePostProcessSettings(bool bEnable, float InFocalDist, float InFStop,
+void APHCameraActor::UpdatePostProcessSettings(bool bEnable, float InFocalDist, float InFStop,
 	float InSensorWidth, float InNearBlur, float InFarBlur, float InFarTransition)
 {
 	if (!MainCamera) return;
@@ -106,7 +106,7 @@ void AProjectHCameraActor::UpdatePostProcessSettings(bool bEnable, float InFocal
 }
 
 /* 카메라 지면의 어디를 조준하는지 교차점 계산 */
-FVector AProjectHCameraActor::GetCameraTargetLocation() const
+FVector APHCameraActor::GetCameraTargetLocation() const
 {
 	FVector Loc = MainCamera->GetComponentLocation();
 	FVector Fwd = MainCamera->GetForwardVector();
@@ -117,18 +117,18 @@ FVector AProjectHCameraActor::GetCameraTargetLocation() const
 }
 
 
-void AProjectHCameraActor::Tick(float DeltaTime)
+void APHCameraActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	auto* Subsystem = GetWorld()->GetSubsystem<UProjectHCameraSubsystem>();
+	auto* Subsystem = GetWorld()->GetSubsystem<UPHCameraSubsystem>();
 	if (!Subsystem) return;
 
 	FCameraPresetSettings Preset;
 	if (!Subsystem->GetActivePreset(Preset)) return;
 
 	AActor* ActiveInstigator = Subsystem->GetActiveInstigator();
-	AProjectHCameraVolume* ActiveVolume = Cast<AProjectHCameraVolume>(ActiveInstigator);
+	APHCameraVolume* ActiveVolume = Cast<APHCameraVolume>(ActiveInstigator);
 
 	float EffectiveBlendTime = Preset.BlendTime;
 	// 델리게이트를 통해 볼륨 변경이 감지된 프레임
@@ -175,15 +175,15 @@ void AProjectHCameraActor::Tick(float DeltaTime)
 	EdgeScrollOffset = FVector::ZeroVector;
 }
 
-void AProjectHCameraActor::OnVolumeChanged(AProjectHCameraVolume* NewVolume, AProjectHCameraVolume* PreviousVolume)
+void APHCameraActor::OnVolumeChanged(APHCameraVolume* NewVolume, APHCameraVolume* PreviousVolume)
 {
 	// 볼륨이 변경되었다는 플래그 On
 	bVolumeChangedThisFrame = true;
 }
 
 /* 카메라 액터 자체가 이동해야 할 위치 계산 */
-FVector AProjectHCameraActor::ComputeTargetLocation(const FCameraPresetSettings& Preset,
-	AActor* ActiveInstigator, AProjectHCameraVolume* ActiveVolume, APawn* PlayerPawn) const
+FVector APHCameraActor::ComputeTargetLocation(const FCameraPresetSettings& Preset,
+	AActor* ActiveInstigator, APHCameraVolume* ActiveVolume, APawn* PlayerPawn) const
 {
 	FVector TargetLoc;
 	if (Preset.VolumeType == ECameraVolumeType::Static && ActiveVolume) // 고정 카메라 모드
@@ -203,8 +203,8 @@ FVector AProjectHCameraActor::ComputeTargetLocation(const FCameraPresetSettings&
 }
 
 /* 카메라가 회전해야 할 각도 계산 */
-FRotator AProjectHCameraActor::ComputeTargetRotation(const FCameraPresetSettings& Preset,
-	AActor* ActiveInstigator, AProjectHCameraVolume* ActiveVolume) const
+FRotator APHCameraActor::ComputeTargetRotation(const FCameraPresetSettings& Preset,
+	AActor* ActiveInstigator, APHCameraVolume* ActiveVolume) const
 {
 	if (Preset.VolumeType == ECameraVolumeType::Static)
 	{
@@ -223,7 +223,7 @@ FRotator AProjectHCameraActor::ComputeTargetRotation(const FCameraPresetSettings
 }
 
 /* 즉시 카메라 위치 및 상태 설정 */
-void AProjectHCameraActor::ApplyHardCut(const FCameraPresetSettings& Preset,
+void APHCameraActor::ApplyHardCut(const FCameraPresetSettings& Preset,
 	const FVector& TargetLoc, const FRotator& TargetRot, float TargetFOV, APlayerController* PC)
 {
 	SetActorLocation(TargetLoc, false, nullptr, ETeleportType::TeleportPhysics);
@@ -251,7 +251,7 @@ void AProjectHCameraActor::ApplyHardCut(const FCameraPresetSettings& Preset,
 }
 
 /* 목표값으로 부드럽게 이동 */
-void AProjectHCameraActor::ApplySmooth(const FCameraPresetSettings& Preset,
+void APHCameraActor::ApplySmooth(const FCameraPresetSettings& Preset,
 	const FVector& TargetLoc, const FRotator& TargetRot, float TargetFOV, float CamSpeed, float DT)
 {
 	// 폰 추적 시 전용 속도로 부드러운 느낌 조절
@@ -274,7 +274,7 @@ void AProjectHCameraActor::ApplySmooth(const FCameraPresetSettings& Preset,
 }
 
 /* 래그 설정 동기화 */
-void AProjectHCameraActor::ApplyLagSettings(const FCameraPresetSettings& Preset, bool bHardCut)
+void APHCameraActor::ApplyLagSettings(const FCameraPresetSettings& Preset, bool bHardCut)
 {
 	if (bHardCut) return;
 	SpringArm->bEnableCameraLag = Preset.bEnableLocationLag && bUseCameraLag;
@@ -282,7 +282,7 @@ void AProjectHCameraActor::ApplyLagSettings(const FCameraPresetSettings& Preset,
 }
 
 /* 투영 방식 설정 및 직교 너비 보간 */
-void AProjectHCameraActor::ApplyProjectionSettings(const FCameraPresetSettings& Preset, float DT, bool bHard)
+void APHCameraActor::ApplyProjectionSettings(const FCameraPresetSettings& Preset, float DT, bool bHard)
 {
 	if (Preset.ProjectionType == ECameraProjectionType::Orthographic)
 	{

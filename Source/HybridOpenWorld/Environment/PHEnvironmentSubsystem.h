@@ -2,17 +2,17 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
-#include "EnvironmentSubsystem.generated.h"
+#include "PHEnvironmentSubsystem.generated.h"
 
 
 class UEnvPresetDataAsset;
-class UProjectHGameInstance;
+class UPHGameInstance;
 class UEnvPresetDataAsset;
 /**
  * 시간의 흐름과 날씨 변화 계산하는 환경 관리 서브시스템
  */
 UCLASS()
-class HYBRIDOPENWORLD_API UEnvironmentSubsystem : public UGameInstanceSubsystem
+class HYBRIDOPENWORLD_API UPHEnvironmentSubsystem : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()
 	
@@ -48,5 +48,5 @@ private:
 	
 	/** ★ 매 타이머마다 Cast하지 않도록 캐싱 */
 	UPROPERTY()
-	UProjectHGameInstance* CachedGameInstance = nullptr;
+	UPHGameInstance* CachedGameInstance = nullptr;
 };

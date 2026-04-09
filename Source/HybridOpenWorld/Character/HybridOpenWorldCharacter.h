@@ -8,7 +8,7 @@
 // 컴파일 속도 최적화를 위한 전방 선언
 class UInputAction;
 class UNiagaraSystem;
-class AProjectHPlayerController;
+class APHPlayerController;
 
 /*
  * 키보드 이동, 마우스 이동 모두 지원하는 하이브리드 캐릭터
@@ -44,7 +44,7 @@ private:
 	void ResetMoveLatch(const FInputActionValue& Value); // 키보드에서 손 뗐을 때 호출 -> 방향 고정 초기화 함수
 	
 	UPROPERTY()
-	TWeakObjectPtr<AProjectHPlayerController> CachedPC; // 매 프레임 Cast하는 비용X -> 플레이어 컨트롤러 캐싱해둘 약참조 포인터
+	TWeakObjectPtr<APHPlayerController> CachedPC; // 매 프레임 Cast하는 비용X -> 플레이어 컨트롤러 캐싱해둘 약참조 포인터
     
 	/* 조작감 보정 - 카메라가 실시간으로 회전하더라도 플레이어가 손을 떼지 않는 한 
 	 * 처음 입력한 월드 기준 방향으로 계속 이동하게 하여 조작 피로도 줄임 */

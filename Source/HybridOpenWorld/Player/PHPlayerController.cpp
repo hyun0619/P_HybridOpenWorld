@@ -1,19 +1,19 @@
-﻿#include "ProjectHPlayerController.h"
+﻿#include "PHPlayerController.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Blueprint/AIBlueprintHelperLibrary.h"
-#include "Camera/ProjectHCameraActor.h"
-#include "Camera/ProjectHLookAroundComponent.h"
+#include "Camera/PHCameraActor.h"
+#include "Camera/PHLookAroundComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Data/LevelSettingsData.h"
 #include "Data/GameMasterAsset.h"
 #include "Data/CameraPresetDataAsset.h"
-#include "Game/ProjectHGameInstance.h"
-#include "Input/ProjectHInputComponent.h"
-#include "Camera/ProjectHCameraSubsystem.h"
+#include "Game/PHGameInstance.h"
+#include "Input/PHInputComponent.h"
+#include "Camera/PHCameraSubsystem.h"
 
 
-AProjectHPlayerController::AProjectHPlayerController()
+APHPlayerController::APHPlayerController()
 {
 	bShowMouseCursor = true;
 	bEnableClickEvents = true;
@@ -21,11 +21,11 @@ AProjectHPlayerController::AProjectHPlayerController()
 	
 	PrimaryActorTick.TickGroup = TG_PostPhysics;
 	
-	InputManager = CreateDefaultSubobject<UProjectHInputComponent>(TEXT("InputManager"));
-	EdgeScrollComponent = CreateDefaultSubobject<UProjectHLookAroundComponent>(TEXT("EdgeScrollComponent"));
+	InputManager = CreateDefaultSubobject<UPHInputComponent>(TEXT("InputManager"));
+	EdgeScrollComponent = CreateDefaultSubobject<UPHLookAroundComponent>(TEXT("EdgeScrollComponent"));
 }
 
-void AProjectHPlayerController::BeginPlay()
+void APHPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 	
@@ -36,19 +36,19 @@ void AProjectHPlayerController::BeginPlay()
 }
 
 /** 월드 내에 배치된 메인 카메라 찾아 캐싱 */
-void AProjectHPlayerController::InitEssentialReferences()
+void APHPlayerController::InitEssentialReferences()
 {
-	MainCameraActor = Cast<AProjectHCameraActor>(
-		UGameplayStatics::GetActorOfClass(GetWorld(), AProjectHCameraActor::StaticClass()));
+	MainCameraActor = Cast<APHCameraActor>(
+		UGameplayStatics::GetActorOfClass(GetWorld(), APHCameraActor::StaticClass()));
 }
 
-AProjectHCameraActor* AProjectHPlayerController::GetMainCameraActor() const
+APHCameraActor* APHPlayerController::GetMainCameraActor() const
 {
 	return MainCameraActor;
 }
 
 /** 현재 맵 설정 정보 읽어옴 */
-void AProjectHPlayerController::FetchLevelData()
+void APHPlayerController::FetchLevelData()
 {
 	if (!IsValid(MasterLevelSettings)) { UE_LOG(LogTemp, Error, TEXT("MasterLevelSettings 유효하지 않음")); return; }
 	if (!IsValid(MasterLevelSettings->LevelTable)) { UE_LOG(LogTemp, Error, TEXT("LevelTable 유효하지 않음")); return; }
@@ -67,7 +67,7 @@ void AProjectHPlayerController::FetchLevelData()
 }
 
 /** 레벨 데이터에 따른 초기 게임 환경 구성 */
-void AProjectHPlayerController::ApplyInitialLevelSetup()
+void APHPlayerController::ApplyInitialLevelSetup()
 {
 	SetViewTarget(MainCameraActor); // 뷰 타겟을 메인 카메라 액터로 설정
 
@@ -82,16 +82,16 @@ void AProjectHPlayerController::ApplyInitialLevelSetup()
 	
 	// 카메라 서브시스템에 해당 레벨의 기본 카메라 프리셋 전달
 	if (MainCameraActor && CurrentLevelRow.CameraPreset)
-		if (auto* Sub = GetWorld()->GetSubsystem<UProjectHCameraSubsystem>())
+		if (auto* Sub = GetWorld()->GetSubsystem<UPHCameraSubsystem>())
 			Sub->SetDefaultPreset(CurrentLevelRow.CameraPreset);
 
 	HandleInitialSpawn(); // 캐릭터 배치 로직 실행
 }
 
 /** 맵 이동 후 캐릭터 위치 결정, 카메라 동기화 */
-void AProjectHPlayerController::HandleInitialSpawn()
+void APHPlayerController::HandleInitialSpawn()
 {
-	auto* GI = Cast<UProjectHGameInstance>(GetGameInstance());
+	auto* GI = Cast<UPHGameInstance>(GetGameInstance());
 	APawn* P = GetPawn();
 	if (!P || !GI) return;
 
@@ -107,19 +107,19 @@ void AProjectHPlayerController::HandleInitialSpawn()
 }
 
 /** 상태 변경 시 실제 IMC 교체 */
-void AProjectHPlayerController::ChangeInputState(EInputState NewState)
+void APHPlayerController::ChangeInputState(EInputState NewState)
 {
 	CurrentState = NewState;
 	if (InputManager) InputManager->ApplyInputState(this, CurrentState);
 }
 
-void AProjectHPlayerController::RevertToDefaultState()
+void APHPlayerController::RevertToDefaultState()
 {
 	ChangeInputState(DefaultState);
 }
 
 /** 향상된 입력 바인딩 */
-void AProjectHPlayerController::SetupInputComponent()
+void APHPlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
 
@@ -128,15 +128,15 @@ void AProjectHPlayerController::SetupInputComponent()
 		if (IA_LookAround)
 		{
 			// 우클릭 시작 시 둘러보기 활성화
-			EnhancedInputComp->BindAction(IA_LookAround, ETriggerEvent::Started, this, &AProjectHPlayerController::OnLookAroundStarted);
+			EnhancedInputComp->BindAction(IA_LookAround, ETriggerEvent::Started, this, &APHPlayerController::OnLookAroundStarted);
             
 			// 우클릭 종료 시 비활성화
-			EnhancedInputComp->BindAction(IA_LookAround, ETriggerEvent::Completed, this, &AProjectHPlayerController::OnLookAroundCompleted);
+			EnhancedInputComp->BindAction(IA_LookAround, ETriggerEvent::Completed, this, &APHPlayerController::OnLookAroundCompleted);
 		}
 	}
 }
 
-void AProjectHPlayerController::OnLookAroundStarted(const FInputActionValue& Value)
+void APHPlayerController::OnLookAroundStarted(const FInputActionValue& Value)
 {
 	if (EdgeScrollComponent)
 	{
@@ -144,7 +144,7 @@ void AProjectHPlayerController::OnLookAroundStarted(const FInputActionValue& Val
 	}
 }
 
-void AProjectHPlayerController::OnLookAroundCompleted(const FInputActionValue& Value)
+void APHPlayerController::OnLookAroundCompleted(const FInputActionValue& Value)
 {
 	if (EdgeScrollComponent)
 	{

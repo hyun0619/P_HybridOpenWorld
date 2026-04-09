@@ -4,28 +4,28 @@
 #include "GameFramework/PlayerController.h"
 #include "InputActionValue.h"
 #include "Data/LevelSettingsData.h"
-#include "ProjectHPlayerController.generated.h"
+#include "PHPlayerController.generated.h"
 
 
-class AProjectHCameraActor;
+class APHCameraActor;
 class UInputAction;
 class UInputMappingContext;
 class UGameMasterAsset;
-class UProjectHInputComponent;
-class UProjectHLookAroundComponent;
+class UPHInputComponent;
+class UPHLookAroundComponent;
 
 /*
  * 임력 상태 관리, 카메라 액터 연결, 레벨 초기화 셋팅 담당하는 컨트롤러
  */
 UCLASS()
-class HYBRIDOPENWORLD_API AProjectHPlayerController : public APlayerController
+class HYBRIDOPENWORLD_API APHPlayerController : public APlayerController
 {
     GENERATED_BODY()
 
 public:
-    AProjectHPlayerController();
+    APHPlayerController();
     
-    AProjectHCameraActor* GetMainCameraActor() const; // 현재 제어 중인 메인 카메라 액터 반환
+    APHCameraActor* GetMainCameraActor() const; // 현재 제어 중인 메인 카메라 액터 반환
     
     // 입력 상태 변경
     UFUNCTION(BlueprintCallable, Category="InputState")
@@ -42,10 +42,10 @@ protected:
     UInputAction* IA_LookAround; // 둘러보기 액션
     
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
-    UProjectHInputComponent* InputManager;
+    UPHInputComponent* InputManager;
     
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
-    UProjectHLookAroundComponent* EdgeScrollComponent;
+    UPHLookAroundComponent* EdgeScrollComponent;
     
     /** 상태 관리 변수 */
     EInputState DefaultState;
@@ -69,7 +69,7 @@ private:
     void HandleInitialSpawn();
 
     UPROPERTY()
-    AProjectHCameraActor* MainCameraActor; // 월드에 배치된 메인 카메라 액터
+    APHCameraActor* MainCameraActor; // 월드에 배치된 메인 카메라 액터
  
     bool bHasValidLevelData = false; // 레벨 데이터를 성공적으로 읽었는지 여부
 };

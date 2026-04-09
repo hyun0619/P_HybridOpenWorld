@@ -1,8 +1,8 @@
-﻿#include "ProjectHCameraSubsystem.h"
-#include "ProjectHCameraVolume.h"
+﻿#include "PHCameraSubsystem.h"
+#include "PHCameraVolume.h"
 
 /* 새로운 카메라 설정을 스택에 넣고 우선순위 정렬 */
-void UProjectHCameraSubsystem::PushCameraPreset(const FCameraPresetSettings& Settings, int32 Priority, AActor* Instigator)
+void UPHCameraSubsystem::PushCameraPreset(const FCameraPresetSettings& Settings, int32 Priority, AActor* Instigator)
 {
 	if (!Instigator) return;
 
@@ -34,7 +34,7 @@ void UProjectHCameraSubsystem::PushCameraPreset(const FCameraPresetSettings& Set
 }
 
 /* 볼륨에서 나갈 때 해당 설정을 스택에서 제거 */
-void UProjectHCameraSubsystem::PopCameraPreset(AActor* Instigator)
+void UPHCameraSubsystem::PopCameraPreset(AActor* Instigator)
 {
 	if (!Instigator) return;
 
@@ -56,7 +56,7 @@ void UProjectHCameraSubsystem::PopCameraPreset(AActor* Instigator)
 }
 
 /* 최종적으로 적용되어야 할 카메라 프리셋 결정 */
-bool UProjectHCameraSubsystem::GetActivePreset(FCameraPresetSettings& OutSettings) const
+bool UPHCameraSubsystem::GetActivePreset(FCameraPresetSettings& OutSettings) const
 {
 	if (CameraStack.IsEmpty())
 	{
@@ -73,7 +73,7 @@ bool UProjectHCameraSubsystem::GetActivePreset(FCameraPresetSettings& OutSetting
 		if (CameraStack[i].Instigator.IsValid())
 		{
 			AActor* ActiveInstigator = CameraStack[i].Instigator.Get();
-			if (AProjectHCameraVolume* Volume = Cast<AProjectHCameraVolume>(ActiveInstigator))
+			if (APHCameraVolume* Volume = Cast<APHCameraVolume>(ActiveInstigator))
 			{
 				OutSettings = Volume->GetCameraSettings();
 				return true;
@@ -90,7 +90,7 @@ bool UProjectHCameraSubsystem::GetActivePreset(FCameraPresetSettings& OutSetting
 }
 
 /* 현재 활성화된 제어 주체 반환 */
-AActor* UProjectHCameraSubsystem::GetActiveInstigator() const
+AActor* UPHCameraSubsystem::GetActiveInstigator() const
 {
 	// 유효한 제어 주체만 반환
 	for (int32 i = CameraStack.Num() - 1; i >= 0; --i)
@@ -104,20 +104,20 @@ AActor* UProjectHCameraSubsystem::GetActiveInstigator() const
 }
 
 /* 레벨 기본 설정값 지정 */
-void UProjectHCameraSubsystem::SetDefaultPreset(UCameraPresetDataAsset* InDefaultDA)
+void UPHCameraSubsystem::SetDefaultPreset(UCameraPresetDataAsset* InDefaultDA)
 {
 	DefaultLevelDA = InDefaultDA;
 }
 
 /* 현재 활성화된 볼륨 액터 타입으로 가져오기*/
-AProjectHCameraVolume* UProjectHCameraSubsystem::GetActiveVolume() const
+APHCameraVolume* UPHCameraSubsystem::GetActiveVolume() const
 {
 	AActor* Instigator = GetActiveInstigator();
-	return Cast<AProjectHCameraVolume>(Instigator);
+	return Cast<APHCameraVolume>(Instigator);
 }
 
 /* 볼륨 내 수치가 에디터나 런타임에서 변경되었을 때 스택 데이터 동기화 */
-void UProjectHCameraSubsystem::NotifyVolumeSettingsChanged(AProjectHCameraVolume* Volume)
+void UPHCameraSubsystem::NotifyVolumeSettingsChanged(APHCameraVolume* Volume)
 {
 	if (!Volume) return;
 	for (FCameraStackEntry& Entry : CameraStack)
@@ -131,7 +131,7 @@ void UProjectHCameraSubsystem::NotifyVolumeSettingsChanged(AProjectHCameraVolume
 }
 
 /* 퇴장 블렌드 시간 소비 - 한번 읽으면 초기화되는 데이터 */
-bool UProjectHCameraSubsystem::ConsumeExitBlendOverride(float& OutBlendTime)
+bool UPHCameraSubsystem::ConsumeExitBlendOverride(float& OutBlendTime)
 {
 	if (!ExitBlendQueue.IsEmpty())
 	{
@@ -144,13 +144,13 @@ bool UProjectHCameraSubsystem::ConsumeExitBlendOverride(float& OutBlendTime)
 }
 
 /* 볼륨이 교체되었는지 확인, 이벤트 발생 */
-void UProjectHCameraSubsystem::CheckAndBroadcastVolumeChange()
+void UPHCameraSubsystem::CheckAndBroadcastVolumeChange()
 {
 	// 상태 검사 시점 - 게임에서 파괴되어 무효화된 약참조 포인터들을 스택에서 청소
 	CameraStack.RemoveAll([](const FCameraStackEntry& Entry) { return !Entry.Instigator.IsValid(); });
 	
-	AProjectHCameraVolume* CurrentVolume = GetActiveVolume();
-	AProjectHCameraVolume* PrevVolume = CachedActiveVolume.Get();
+	APHCameraVolume* CurrentVolume = GetActiveVolume();
+	APHCameraVolume* PrevVolume = CachedActiveVolume.Get();
 
 	// 현재 활성화된 볼륨이 이전과 다르면 델리게이트를 통해 외부에 알림
 	if (CurrentVolume != PrevVolume)

@@ -1,14 +1,14 @@
-#include "Input/ProjectHInputComponent.h"
+#include "Input/PHInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "GameFramework/PlayerController.h"
 
 
-UProjectHInputComponent::UProjectHInputComponent()
+UPHInputComponent::UPHInputComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
-void UProjectHInputComponent::ApplyInputState(APlayerController* PC, EInputState NewState)
+void UPHInputComponent::ApplyInputState(APlayerController* PC, EInputState NewState)
 {
 	if (!PC || !PC->GetLocalPlayer()) return;
 

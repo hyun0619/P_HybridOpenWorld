@@ -3,9 +3,9 @@
 #include "CoreMinimal.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "Data/CameraPresetDataAsset.h"
-#include "ProjectHCameraSubsystem.generated.h"
+#include "PHCameraSubsystem.generated.h"
 
-class AProjectHCameraVolume;
+class APHCameraVolume;
 
 /*
  * 현재 활성화된 카메라 설정 관리를 위한 스택 개별 요소
@@ -29,14 +29,14 @@ struct FCameraStackEntry
 };
 
 // 카메라 볼륨이 변경되었을 때 델리게이트
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnActiveVolumeChanged, AProjectHCameraVolume*, NewVolume,
-	AProjectHCameraVolume*, PreviousVolume);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnActiveVolumeChanged, APHCameraVolume*, NewVolume,
+	APHCameraVolume*, PreviousVolume);
 
 /*
  * 월드 내 모든 카메라 볼륨 요청 수집, 최종 적용될 카메라 값 계산
  */
 UCLASS()
-class HYBRIDOPENWORLD_API UProjectHCameraSubsystem : public UWorldSubsystem
+class HYBRIDOPENWORLD_API UPHCameraSubsystem : public UWorldSubsystem
 {
 	GENERATED_BODY()
 
@@ -51,9 +51,9 @@ public:
 	
 	/* 신규 API */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="Camera System")
-	AProjectHCameraVolume* GetActiveVolume() const; // 현재 활성화된 카메라 볼륨 액터 반환
+	APHCameraVolume* GetActiveVolume() const; // 현재 활성화된 카메라 볼륨 액터 반환
 	
-	void NotifyVolumeSettingsChanged(AProjectHCameraVolume* Volume); // 볼륨 내부 수치가 실시간으로 변경됨을 알림
+	void NotifyVolumeSettingsChanged(APHCameraVolume* Volume); // 볼륨 내부 수치가 실시간으로 변경됨을 알림
 	
 	/**
 	 * 퇴장 시의 블렌드 타임(전환 시간) 값을 한 번만 가져옴
@@ -70,7 +70,7 @@ private:
 	UPROPERTY()
 	TArray<FCameraStackEntry> CameraStack; // 현재 겹쳐있는 모든 카메라 설정들의 목록
 	UPROPERTY()
-	TWeakObjectPtr<AProjectHCameraVolume> CachedActiveVolume; // 이전 볼륨 기억 -> 변경 사항 감지 변수
+	TWeakObjectPtr<APHCameraVolume> CachedActiveVolume; // 이전 볼륨 기억 -> 변경 사항 감지 변수
 	
 	TArray<float> ExitBlendQueue; // 볼륨 나갈 때 적용할 임시 블렌드 시간
 

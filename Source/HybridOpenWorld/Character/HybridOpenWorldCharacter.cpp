@@ -5,8 +5,8 @@
 #include "InputAction.h"
 #include "Blueprint/AIBlueprintHelperLibrary.h"
 #include "NiagaraFunctionLibrary.h"
-#include "Player/ProjectHPlayerController.h"
-#include "Camera/ProjectHCameraActor.h"
+#include "Player/PHPlayerController.h"
+#include "Camera/PHCameraActor.h"
 
 AHybridOpenWorldCharacter::AHybridOpenWorldCharacter()
 {
@@ -37,7 +37,7 @@ void AHybridOpenWorldCharacter::PossessedBy(AController* NewController)
 {
     Super::PossessedBy(NewController);
     // 시작 시점에 딱 한 번만 Cast 연산 수행 -> 성능 확보
-    CachedPC = Cast<AProjectHPlayerController>(NewController);
+    CachedPC = Cast<APHPlayerController>(NewController);
 }
 
 void AHybridOpenWorldCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -77,7 +77,7 @@ void AHybridOpenWorldCharacter::HandleMove_KeyBoard(const FInputActionValue& Val
 
     if (CachedPC.IsValid())
     {
-       if (AProjectHCameraActor* MainCamera = CachedPC->GetMainCameraActor()) 
+       if (APHCameraActor* MainCamera = CachedPC->GetMainCameraActor()) 
        {
           if (!bIsInputLatched) // 방향 고정이 안 된 상태라면 현재 카메라 기준으로 월드 벡터 계산
           {

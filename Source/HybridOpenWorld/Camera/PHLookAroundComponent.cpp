@@ -1,38 +1,38 @@
-#include "ProjectHLookAroundComponent.h"
-#include "ProjectHCameraActor.h"
+#include "PHLookAroundComponent.h"
+#include "PHCameraActor.h"
 #include "GameFramework/PlayerController.h"
-#include "Player/ProjectHPlayerController.h"
+#include "Player/PHPlayerController.h"
 
-UProjectHLookAroundComponent::UProjectHLookAroundComponent()
+UPHLookAroundComponent::UPHLookAroundComponent()
 {
     PrimaryComponentTick.bCanEverTick = true;
     
     PrimaryComponentTick.TickGroup = TG_PrePhysics; // 동일 프레임의 카메라 업데이트에 오프셋 전달
 }
 
-void UProjectHLookAroundComponent::BeginPlay()
+void UPHLookAroundComponent::BeginPlay()
 {
     Super::BeginPlay();
     
-    CachedPC = Cast<AProjectHPlayerController>(GetOwner());
+    CachedPC = Cast<APHPlayerController>(GetOwner());
 }
 
-void UProjectHLookAroundComponent::SetLookAroundActive(bool bActive)
+void UPHLookAroundComponent::SetLookAroundActive(bool bActive)
 {
     bIsLookAroundActive = bActive;
 }
 
 // 컨트롤러가 이미 들고 있는 메인 카메라 반환
-AProjectHCameraActor* UProjectHLookAroundComponent::GetMainCamera() const
+APHCameraActor* UPHLookAroundComponent::GetMainCamera() const
 {
     return CachedPC.IsValid() ? CachedPC->GetMainCameraActor() : nullptr;
 }
 
-void UProjectHLookAroundComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+void UPHLookAroundComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
     Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
     
-    AProjectHCameraActor* CameraActor = GetMainCamera(); // 컨트롤러나 카메라가 유효하지 않으면 연산을 중단
+    APHCameraActor* CameraActor = GetMainCamera(); // 컨트롤러나 카메라가 유효하지 않으면 연산을 중단
     if (!CachedPC.IsValid() || !CameraActor) return;
 
     if (!bIsLookAroundActive) // 기능 사용 X일 때 - 서서히 원래 위치로 복귀

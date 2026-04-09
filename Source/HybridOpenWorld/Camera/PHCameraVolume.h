@@ -3,7 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Data/CameraPresetDataAsset.h"
-#include "ProjectHCameraVolume.generated.h"
+#include "PHCameraVolume.generated.h"
 
 class UBoxComponent;
 class USpringArmComponent;
@@ -13,12 +13,12 @@ class UCameraComponent;
  * 레벨에 배치하는 카메라 볼륨 박스 트리거 액터 - 영역 진입 시 카메라 연출 변경
  */
 UCLASS(HideCategories=(Rendering, Replication, Input, Actor, LOD, Cooking))
-class HYBRIDOPENWORLD_API AProjectHCameraVolume : public AActor
+class HYBRIDOPENWORLD_API APHCameraVolume : public AActor
 {
     GENERATED_BODY()
 
 public:
-    AProjectHCameraVolume();
+    APHCameraVolume();
 	
     virtual void OnConstruction(const FTransform& Transform) override; // 액터 수치 변경마다 실시간 호출(프리뷰 업데이트용)
 

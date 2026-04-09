@@ -2,10 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "ProjectHLookAroundComponent.generated.h"
+#include "PHLookAroundComponent.generated.h"
 
-class AProjectHCameraActor;
-class AProjectHPlayerController;
+class APHCameraActor;
+class APHPlayerController;
 
 /**
  * 좀보이드의 Look Around 기능을 본뜬 카메라 컴포넌트
@@ -13,12 +13,12 @@ class AProjectHPlayerController;
  * 마우스를 화면 중심에서 멀리 이동하면 카메라가 해당 방향으로 패닝
  */
 UCLASS(ClassGroup=(Camera), meta=(BlueprintSpawnableComponent))
-class HYBRIDOPENWORLD_API UProjectHLookAroundComponent : public UActorComponent
+class HYBRIDOPENWORLD_API UPHLookAroundComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
 public:
-	UProjectHLookAroundComponent();
+	UPHLookAroundComponent();
 	
 	// 매 프레임 마우스 위치 계산 및 카메라 오프셋 적용
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
@@ -49,7 +49,7 @@ private:
 
 	// 캐싱된 컨트롤러 포인터, TWeakObjectPtr 사용하여 컨트롤러 파괴되었을 때의 안전성 확보
 	UPROPERTY()
-	TWeakObjectPtr<AProjectHPlayerController> CachedPC;
+	TWeakObjectPtr<APHPlayerController> CachedPC;
 	
-	AProjectHCameraActor* GetMainCamera() const; // 현재 제어 중인 메인 카메라 액터를 안전하게 가져오는 함수
+	APHCameraActor* GetMainCamera() const; // 현재 제어 중인 메인 카메라 액터를 안전하게 가져오는 함수
 };
