@@ -12,6 +12,8 @@ public class HybridOpenWorld : ModuleRules
         {
 	        "Core", "CoreUObject", "Engine", "InputCore", "NavigationSystem", "AIModule", "Niagara", "EnhancedInput",
 	        "GameplayTags", // FGameplayTag
+	        "GameplayAbilities", // GAS - Ability System
+	        "GameplayTasks", // GAS - Task 시스템
         });
         
         PublicIncludePaths.AddRange(new string[] {"HybridOpenWorld"});
