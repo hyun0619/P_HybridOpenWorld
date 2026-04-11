@@ -14,6 +14,7 @@ public class HybridOpenWorld : ModuleRules
 	        "GameplayTags", // FGameplayTag
 	        "GameplayAbilities", // GAS - Ability System
 	        "GameplayTasks", // GAS - Task 시스템
+			"GameplayMessageRuntime", // GMS
         });
         
         PublicIncludePaths.AddRange(new string[] {"HybridOpenWorld"});
